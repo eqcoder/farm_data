@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'business_trip/business_trip_screen.dart';
 import 'farm_info/farm_info_screen.dart';
+import 'main_screen.dart/android_screen.dart';
+import 'main_screen.dart/windows_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,125 +103,9 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Spacer(flex: 2),
-                  Expanded(
-                    flex: 5, // 가로 공간의 2/3 차지
-                    child: _buildRoundedButton(context, '출장', () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (BuildContext context) => BusinessTripScreen(),
-                        ),
-                      );
-                      print('출장버튼 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 5,
-                    child: _buildRoundedButton(context, '야장추출', () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => EnterDataScreen(),
-                        ),
-                      );
-                      print('데이터 입력 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 5,
-                    child: _buildRoundedButton(context, '농가정보', () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => FarmInfoScreen(),
-                        ),
-                      );
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 4,
-                    child: _buildRoundedButton(context, '버튼 2', () {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 5,
-                    child: _buildRoundedButton(context, '버튼 2', () {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 2),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Row(
-              children: [
-                Spacer(flex: 2),
-                Expanded(
-                  flex: 5,
-                  child: _buildRoundedButton(context, '버튼 2', () {
-                    print('버튼 2 클릭');
-                  }),
-                ),
-                Spacer(flex: 1),
-                Expanded(
-                  flex: 5,
-                  child: _buildRoundedButton(context, '버튼 2', () {
-                    print('버튼 2 클릭');
-                  }),
-                ),
-                Spacer(flex: 1),
-                Expanded(
-                  flex: 5,
-                  child: _buildRoundedButton(context, '버튼 2', () {
-                    print('버튼 2 클릭');
-                  }),
-                ),
-                Spacer(flex: 1),
-                Expanded(
-                  flex: 5,
-                  child: _buildRoundedButton(context, '버튼 2', () {
-                    print('버튼 2 클릭');
-                  }),
-                ),
-                Spacer(flex: 1),
-                Expanded(
-                  flex: 5,
-                  child: _buildRoundedButton(context, '버튼 2', () {
-                    print('버튼 2 클릭');
-                  }),
-                ),
-                Spacer(flex: 2),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
-          ),
-        ],
-      ),
+      body: Platform.isAndroid
+                ? AndroidMainScreen()
+                : WindowsMainScreen(),
       bottomNavigationBar: const BottomAppBar(
         // BottomAppBar를 사용하여 바닥에 공간 확보
         child: Padding(
@@ -238,43 +124,4 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-}
-
-Widget _buildRoundedButton(
-  BuildContext context,
-  String text,
-  VoidCallback onPressed,
-) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8.0),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey,
-          spreadRadius: 1,
-          blurRadius: 5,
-          offset: const Offset(0, 3), // changes position of shadow
-        ),
-      ],
-    ),
-    child: ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 12,
-        ), // 버튼 내부 패딩 조정
-      ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 32),
-        textAlign: TextAlign.center,
-      ),
-    ),
-  );
 }

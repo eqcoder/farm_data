@@ -4,25 +4,25 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 final Schema schema = Schema.object(
   properties: {
-    '생육조사': Schema.array(
-      items: Schema.object(
+    '생육조사': Schema.array(nullable: false,
+      items: Schema.object(nullable: false,
         properties: {
-          '개체': Schema.integer(),
-          '줄기번호': Schema.integer(),
-          '생장길이': Schema.number(),
-          '엽수': Schema.integer(),
-          '엽장': Schema.number(),
-          '엽폭': Schema.number(),
-          '줄기굵기': Schema.number(),
-          '화방높이': Schema.number(),
-          '개화마디': Schema.integer(),
-          '착과마디': Schema.integer(),
-          '열매마디': Schema.integer(),
-          '수확마디': Schema.integer(),
-          '개화수': Schema.integer(),
-          '착과수': Schema.integer(),
-          '열매수': Schema.integer(),
-          '수확수': Schema.integer(),
+          '개체': Schema.integer(nullable: false),
+          '줄기번호': Schema.integer(nullable: false),
+          '생장길이': Schema.number(nullable: false),
+          '엽수': Schema.integer(nullable: false),
+          '엽장': Schema.number(nullable: false),
+          '엽폭': Schema.number(nullable: false),
+          '줄기굵기': Schema.number(nullable: false),
+          '화방높이': Schema.number(nullable: false),
+          '개화마디': Schema.integer(nullable: false),
+          '착과마디': Schema.integer(nullable: false),
+          '열매마디': Schema.integer(nullable: false),
+          '수확마디': Schema.integer(nullable: false),
+          '개화수': Schema.integer(nullable: false),
+          '착과수': Schema.integer(nullable: false),
+          '열매수': Schema.integer(nullable: false),
+          '수확수': Schema.integer(nullable: false),
         },
       ),
     ),
@@ -68,9 +68,10 @@ class Tomato {
 
 class PepperWidget extends StatefulWidget {
   final List<Map<String, dynamic>> data;
-  PepperWidget({required this.data});
+  const PepperWidget({super.key, required this.data});
+
   @override
-  State<_PepperWidgetState> createState() => _PepperWidgetState();
+  State<PepperWidget> createState() => _PepperWidgetState();
 }
 
 class _PepperWidgetState extends State<PepperWidget> {
@@ -84,14 +85,15 @@ class _PepperWidgetState extends State<PepperWidget> {
 
   List<DataRow> _buildRows() {
     return widget.data.map((rowData) => DataRow(
-          cells: rowData.map((data) => DataCell(Text(data.toString()))).toList(),
+          cells: rowData.entries.map((d) => DataCell(Text(d.toString()))).toList(),
         )).toList();
   }
+  @override
   Widget build(BuildContext context) {
     return DataTable(
           columns: _buildColumns(),
           rows:_buildRows(),
-    )
+    );
     
 }
   

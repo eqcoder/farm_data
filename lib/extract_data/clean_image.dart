@@ -1,25 +1,20 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:image/image.dart';
 
-// Helper functions to extract color components
-int getRed(int pixel) => (pixel >> 16) & 0xFF;
-int getGreen(int pixel) => (pixel >> 8) & 0xFF;
-int getBlue(int pixel) => pixel & 0xFF;
-
-Uint8List cleanImage(Uint8List imageBytes) {
-  Image? image = decodeImage(imageBytes);
+Future<Uint8List> cleanImage(File picture) async {
+  Image? image=decodeImage(picture.readAsBytesSync());
   if (image == null) {
     throw Exception('Failed to decode the image.');
   }
 
   // Define color ranges for masking
-  final redMin = [140, 0, 0];
-  final redMax = [255, 140, 140];
+  final redMin = [110, 0, 0];
+  final redMax = [255, 190, 190];
   // final grayMin = [190, 190, 190];
   // final grayMax = [255, 255, 230];
 
-  // Apply red mask
   for (int y = 0; y < image.height; y++) {
     for (int x = 0; x < image.width; x++) {
       final pixel = image.getPixel(x, y);
@@ -61,20 +56,21 @@ Uint8List cleanImage(Uint8List imageBytes) {
   // image = gaussianBlur(image, 5);
 
   // Apply adaptive thresholding
-  for (int y = 0; y < image.height; y++) {
-    for (int x = 0; x < image.width; x++) {
-      final pixel = image.getPixel(x, y);
-      final intensity = pixel.r; // Grayscale, so R=G=B
-      final threshold = 128; // Simplified adaptive threshold
-      if (intensity > threshold) {
-        image.setPixel(x, y, image.getColor(255, 255, 255));
-      } else {
-        image.setPixel(x, y, image.getColor(0, 0, 0));
-      }
-    }
-  }
+  // for (int y = 0; y < image.height; y++) {
+  //   for (int x = 0; x < image.width; x++) {
+  //     final pixel = image.getPixel(x, y);
+  //     final intensity = pixel.r; // Grayscale, so R=G=B
+  //     final threshold = 128; // Simplified adaptive threshold
+  //     if (intensity > threshold) {
+  //       image.setPixel(x, y, image.getColor(255, 255, 255));
+  //     } else {
+  //       image.setPixel(x, y, image.getColor(0, 0, 0));
+  //     }
+  //   }
+  // }
 
-
+  final Uint8List pngBytes = encodePng(image) as Uint8List;
+  
   // Save the processed image
   return encodeJpg(image);
 }

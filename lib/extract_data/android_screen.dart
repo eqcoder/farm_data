@@ -7,11 +7,11 @@ import 'clean_image.dart';
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'clean_image.dart';
-import 'gemini.dart';
 import '../crop_config/schema.dart';
 import '../crop_config/tomato.dart';
 import '../crop_config/pepper.dart';
 import 'enter_data.dart';
+import 'gemini.dart';
 
 class AndroidEnterDataLayout extends StatefulWidget {
 
@@ -19,7 +19,39 @@ class AndroidEnterDataLayout extends StatefulWidget {
 }
 
 class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
-  EnterData enterData = EnterData();
+  File? selectedImage;
+
+  Uint8List? editedImage;
+  Map<String, dynamic>? crop;
+
+  final TextEditingController farmNameController = TextEditingController();
+  final TextEditingController cropNameController = TextEditingController();
+  final TextEditingController surveyDateController = TextEditingController();
+  
+  Future<void> getImage(ImageSource source) async {
+  final ImagePicker _picker = ImagePicker();
+  final XFile? pickedFile = await _picker.pickImage(source: source);
+  if (pickedFile != null) {
+    setState(() {
+      selectedImage=File(pickedFile.path);
+    });
+  }
+  }
+  
+Future<void> extractImage() async {
+  Uint8List img=await cleanImage(selectedImage!);
+  Map<String, dynamic> _crop=await extractData(img);
+  if (selectedImage!=null){
+    setState(() {
+      editedImage=img;
+      crop= _crop;
+      print(crop!["농가명"]);
+      farmNameController.text=crop!["농가명"];
+      cropNameController.text=crop!["작물명"];
+      surveyDateController.text=crop!["조사일"];
+    });
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -28,18 +60,12 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
         children: [
           // 좌측 영역
           Expanded(
-            flex: 15,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 1,
+                  flex: 2,
                   child: Row(
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData.getImage(ImageSource.gallery);
-                          enterData.getImage(ImageSource.gallery);
+                          getImage(ImageSource.gallery);
                         },
                         icon: const Icon(Icons.photo),
                         label: const Text('사진 선택'),
@@ -55,7 +81,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData.getImage(ImageSource.camera);
+                          getImage(ImageSource.camera);
                           
                         },
                         icon: const Icon(Icons.camera_alt),
@@ -72,33 +98,30 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                     ],
                   ),
                 ),
+                Spacer(flex:1),
                 // 이미지를 띄우는 컨테이너
                 Expanded(
-                  flex: 7,
+                  flex: 15,
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child:
-                        enterData.editedImage != null
-                            ? Image.memory(enterData.editedImage!, fit: BoxFit.fill)
+                        editedImage != null
+                            ? Image.memory(editedImage!, fit: BoxFit.fill)
                             : Center(child: Text('이미지를 로드하세요')),
                   ),
                 ),
-                Expanded(flex: 2, child: SizedBox()),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
+          Spacer(flex: 1),
           // 야장추출 버튼
           Expanded(
-            flex: 1,
+            flex: 2,
             child: TextButton(
               onPressed: () {
-                cleanImage(enterData.editedImage!);
+                if(selectedImage != null){
+                extractImage();}
                 // Map<String, dynamic> extractData(_editedImage!);
-                print('Text Button pressed!');
                 // 여기에 텍스트 버튼 클릭 시 수행할 동작을 작성합니다.
               },
               child: Row(
@@ -111,21 +134,16 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          Spacer(flex:1),
           // 우측 영역
           Expanded(
-            flex: 15,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 1,
+            flex: 2,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: enterData.farmNameController,
+                          controller: farmNameController,
                           decoration: const InputDecoration(
                             labelText: '농가명',
                             border: OutlineInputBorder(),
@@ -136,7 +154,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData.cropNameController,
+                          controller: cropNameController,
                           decoration: const InputDecoration(
                             labelText: '작물명',
                             border: OutlineInputBorder(),
@@ -147,7 +165,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData.surveyDateController,
+                          controller: surveyDateController,
                           decoration: const InputDecoration(
                             labelText: '조사일',
                             border: OutlineInputBorder(),
@@ -158,20 +176,21 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                     ],
                   ),
                 ),
-
+                Spacer(flex:1),
                 // 표를 띄우는 컨테이너
                 Expanded(
-                  flex: 7,
+                  flex: 15,
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: enterData.crop["작물명"]=="파프리카"
-                    ?PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
-                    :PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
+                    child: crop !=null&&crop!["작물명"]=="파프리카"
+                    ?PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
+                    :Center(child:Text("추출버튼을 눌러주세요"))
                   ),
                 ),
+                Spacer(flex:1),
                 Expanded(
                   flex: 2,
                   child: Row(
@@ -209,11 +228,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                     ],
                   ),
                 ),
+                Spacer(flex:1)
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+          );}}

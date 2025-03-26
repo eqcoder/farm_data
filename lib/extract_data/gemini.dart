@@ -26,13 +26,14 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   );
 
   // Load the image file and encode it in base64
-  final prompt = 'extract all texts in image';
+  final prompt = '이미지의 모든 텍스트를 추출해주세요. 숫자는 소수점에 유의하여 주어진 형식에 맞춰서 추출해주세요.';
   final response = await model.generateContent([
     Content.multi([
       TextPart(prompt), // 텍스트 추출을 명시하는 프롬프트
       DataPart('image/jpeg', imageBytes),
     ]),
   ]);
+  print(response.text!);
   Map<String, dynamic> jsonData = jsonDecode(response.text!);
   return jsonData;
 }

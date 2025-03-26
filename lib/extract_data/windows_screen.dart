@@ -19,7 +19,32 @@ class WindowsEnterDataLayout extends StatefulWidget {
 }
 
 class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
-  EnterData enterData = EnterData();
+  File? selectedImage;
+
+  Map<String, dynamic>? crop;
+
+  final TextEditingController farmNameController = TextEditingController();
+  final TextEditingController cropNameController = TextEditingController();
+  final TextEditingController surveyDateController = TextEditingController();
+  
+  Future<void> getImage(ImageSource source) async {
+  final ImagePicker _picker = ImagePicker();
+  final XFile? pickedFile = await _picker.pickImage(source: source);
+  if (pickedFile != null) {
+    setState(() {
+      selectedImage=File(pickedFile.path);
+    });
+  }
+  }
+  
+Future<void> extractImage() async {
+  Map<String, dynamic> _crop=await extractData(await cleanImage(selectedImage!));
+  if (selectedImage!=null){
+    setState(() {
+      crop= _crop;
+    });
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -38,8 +63,8 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData.getImage(ImageSource.gallery);
-                          enterData.getImage(ImageSource.gallery);
+                          getImage(ImageSource.gallery);
+                          getImage(ImageSource.gallery);
                         },
                         icon: const Icon(Icons.photo),
                         label: const Text('사진 선택'),
@@ -55,7 +80,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                       const SizedBox(width: 8),
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData.getImage(ImageSource.camera);
+                          getImage(ImageSource.camera);
                           
                         },
                         icon: const Icon(Icons.camera_alt),
@@ -81,8 +106,8 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child:
-                        enterData.editedImage != null
-                            ? Image.memory(enterData.editedImage!, fit: BoxFit.fill)
+                        selectedImage != null
+                            ? Image.file(selectedImage!, fit: BoxFit.fill)
                             : Center(child: Text('이미지를 로드하세요')),
                   ),
                 ),
@@ -96,7 +121,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
             flex: 1,
             child: TextButton(
               onPressed: () {
-                cleanImage(enterData.editedImage!);
+                cleanImage(selectedImage!);
                 // Map<String, dynamic> extractData(_editedImage!);
                 print('Text Button pressed!');
                 // 여기에 텍스트 버튼 클릭 시 수행할 동작을 작성합니다.
@@ -125,7 +150,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: enterData.farmNameController,
+                          controller: farmNameController,
                           decoration: const InputDecoration(
                             labelText: '농가명',
                             border: OutlineInputBorder(),
@@ -136,7 +161,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData.cropNameController,
+                          controller: cropNameController,
                           decoration: const InputDecoration(
                             labelText: '작물명',
                             border: OutlineInputBorder(),
@@ -147,7 +172,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData.surveyDateController,
+                          controller: surveyDateController,
                           decoration: const InputDecoration(
                             labelText: '조사일',
                             border: OutlineInputBorder(),
@@ -167,9 +192,9 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: enterData.crop!["작물명"]=="파프리카"
-                    ?PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
-                    :PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
+                    child: crop!=null && crop!["작물명"]=="파프리카"
+                    ?PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
+                    :PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
                   ),
                 ),
                 Expanded(
