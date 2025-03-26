@@ -7,7 +7,7 @@ int getRed(int pixel) => (pixel >> 16) & 0xFF;
 int getGreen(int pixel) => (pixel >> 8) & 0xFF;
 int getBlue(int pixel) => pixel & 0xFF;
 
-Image cleanImage(Uint8List imageBytes) {
+Uint8List cleanImage(Uint8List imageBytes) {
   Image? image = decodeImage(imageBytes);
   if (image == null) {
     throw Exception('Failed to decode the image.');
@@ -73,8 +73,8 @@ Image cleanImage(Uint8List imageBytes) {
       }
     }
   }
+
+
   // Save the processed image
-  final newFilePath = filePath.replaceFirst('.jpg', '_edit.jpg');
-  File(newFilePath).writeAsBytesSync(encodeJpg(image));
-  return image;
+  return encodeJpg(image);
 }

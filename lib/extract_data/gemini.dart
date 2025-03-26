@@ -6,7 +6,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../crop_config/schema.dart';
 
-Future<Crop> extractData(Uint8List imageBytes) async {
+Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   await dotenv.load(); // Load environment variables
   final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; // Fetch API key
   if (apiKey.isEmpty) {
@@ -34,6 +34,5 @@ Future<Crop> extractData(Uint8List imageBytes) async {
     ]),
   ]);
   Map<String, dynamic> jsonData = jsonDecode(response.text!);
-  Crop crop = Crop.fromJson(jsonData);
-  return crop;
+  return jsonData;
 }
