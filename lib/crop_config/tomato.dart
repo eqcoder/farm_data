@@ -3,34 +3,34 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 final Schema schema = Schema.object(
   properties: {
-    '화방별조사': Schema.array(
+    '화방별조사': Schema.array(nullable: false,
       items: Schema.object(
         properties: {
-          '개체': Schema.integer(),
-          '화방': Schema.array(
-            items: Schema.object(
+          '개체': Schema.integer(nullable: false),
+          '화방': Schema.array(nullable: false,
+            items: Schema.object(nullable: false,
               properties: {
-                '화방번호': Schema.integer(),
-                '꽃대': Schema.integer(),
-                '개화수': Schema.integer(),
-                '착과': Schema.integer(),
-                '수확': Schema.integer(),
+                '화방번호': Schema.integer(nullable: false),
+                '꽃대': Schema.integer(nullable: false),
+                '개화수': Schema.integer(nullable: false),
+                '착과': Schema.integer(nullable: false),
+                '수확': Schema.integer(nullable: false),
               },
             ),
           ),
         },
       ),
     ),
-    '기본조사': Schema.array(
-      items: Schema.object(
+    '기본조사': Schema.array(nullable: false,
+      items: Schema.object(nullable: false,
         properties: {
-          '개체': Schema.integer(),
-          '생장길이': Schema.number(),
-          '엽수': Schema.integer(),
-          '엽장': Schema.number(),
-          '엽폭': Schema.number(),
-          '줄기굵기': Schema.number(),
-          '화방높이': Schema.number(),
+          '개체': Schema.integer(nullable: false),
+          '생장길이': Schema.number(nullable: false),
+          '엽수': Schema.integer(nullable: false),
+          '엽장': Schema.number(nullable: false),
+          '엽폭': Schema.number(nullable: false),
+          '줄기굵기': Schema.number(nullable: false),
+          '화방높이': Schema.number(nullable: false),
         },
       ),
     ),
