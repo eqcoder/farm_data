@@ -67,13 +67,32 @@ class Tomato {
 }
 
 class PepperWidget extends StatefulWidget {
+  final List<Map<String, dynamic>> data;
+  PepperWidget({required this.data});
   @override
   State<_PepperWidgetState> createState() => _PepperWidgetState();
 }
 
 class _PepperWidgetState extends State<PepperWidget> {
-  final List<Tomato> data;
-  _PepperWidgetState({required this.data});
+  
+  final List<String> _columnHeaders = ['개체', '줄기번호', '생장길이', '엽수', '엽장', '엽폭', '줄기굵기', '화방높이', '개화마디', '착과마디', '열매마디', '수확마디', '개화수', '착과수', '열매수', '수확수'];
+  
 
+  List<DataColumn> _buildColumns() {
+    return _columnHeaders.map((header) => DataColumn(label: Text(header))).toList();
+  }
+
+  List<DataRow> _buildRows() {
+    return widget.data.map((rowData) => DataRow(
+          cells: rowData.map((data) => DataCell(Text(data.toString()))).toList(),
+        )).toList();
+  }
+  Widget build(BuildContext context) {
+    return DataTable(
+          columns: _buildColumns(),
+          rows:_buildRows(),
+    )
+    
+}
   
 }

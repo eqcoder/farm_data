@@ -9,9 +9,12 @@ import 'dart:typed_data';
 import 'clean_image.dart';
 import 'gemini.dart';
 import '../crop_config/schema.dart';
+import '../crop_config/tomato.dart';
+import '../crop_config/pepper.dart';
+import 'enter_data.dart';
 
 class AndroidEnterDataLayout extends StatefulWidget {
-  AndroidEnterDataLayout
+
   _AndroidEnterDataWidgetState createState() => _AndroidEnterDataWidgetState();
 }
 
@@ -35,7 +38,8 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData._getImage(ImageSource.gallery);
+                          enterData.getImage(ImageSource.gallery);
+                          enterData.getImage(ImageSource.gallery);
                         },
                         icon: const Icon(Icons.photo),
                         label: const Text('사진 선택'),
@@ -51,7 +55,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       ElevatedButton.icon(
                         onPressed: () {
-                          enterData._getImage(ImageSource.camera);
+                          enterData.getImage(ImageSource.camera);
                           
                         },
                         icon: const Icon(Icons.camera_alt),
@@ -77,8 +81,8 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child:
-                        enterData._editedImage != null
-                            ? Image.memory(enterData._editedImage!, fit: BoxFit.fill)
+                        enterData.editedImage != null
+                            ? Image.memory(enterData.editedImage!, fit: BoxFit.fill)
                             : Center(child: Text('이미지를 로드하세요')),
                   ),
                 ),
@@ -92,6 +96,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
             flex: 1,
             child: TextButton(
               onPressed: () {
+                cleanImage(enterData.editedImage!);
                 // Map<String, dynamic> extractData(_editedImage!);
                 print('Text Button pressed!');
                 // 여기에 텍스트 버튼 클릭 시 수행할 동작을 작성합니다.
@@ -120,7 +125,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: enterData._farmNameController,
+                          controller: enterData.farmNameController,
                           decoration: const InputDecoration(
                             labelText: '농가명',
                             border: OutlineInputBorder(),
@@ -131,7 +136,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData._cropNameController,
+                          controller: enterData.cropNameController,
                           decoration: const InputDecoration(
                             labelText: '작물명',
                             border: OutlineInputBorder(),
@@ -142,7 +147,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
-                          controller: enterData._surveyDateController,
+                          controller: enterData.surveyDateController,
                           decoration: const InputDecoration(
                             labelText: '조사일',
                             border: OutlineInputBorder(),
@@ -162,7 +167,9 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: const Center(child: Text('표 표시 영역')),
+                    child: enterData.crop["작물명"]=="파프리카"
+                    ?PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
+                    :PepperWidget(enterData.crop!["data"]["파프리카"]["생육조사"])
                   ),
                 ),
                 Expanded(
