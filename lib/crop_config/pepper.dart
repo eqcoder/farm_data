@@ -24,6 +24,7 @@ final Schema schema = Schema.object(
           '열매수': Schema.integer(nullable: false),
           '수확수': Schema.integer(nullable: false),
         },
+        requiredProperties: ['개체', '줄기번호', '생장길이', '엽수', '엽장', '엽폭', '줄기굵기', '화방높이', '개화마디', '착과마디', '열매마디', '수확마디', '개화수', '착과수', '열매수', '수확수'],
       ),
     ),
   },
@@ -79,21 +80,63 @@ class _PepperWidgetState extends State<PepperWidget> {
   final List<String> _columnHeaders = ['개체', '줄기번호', '생장길이', '엽수', '엽장', '엽폭', '줄기굵기', '화방높이', '개화마디', '착과마디', '열매마디', '수확마디', '개화수', '착과수', '열매수', '수확수'];
   
 
+ void _editCell(int rowIndex, String columnName) async {
+  print("edit cell 클릭");
+    TextEditingController controller =
+        TextEditingController(text: widget.data[rowIndex][columnName]);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("$columnName 수정"),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(border: OutlineInputBorder()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: Text("취소")
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  widget.data[rowIndex][columnName] = controller.text;
+                });
+                Navigator.pop(context);
+              },
+              child: Text("저장"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   List<DataColumn> _buildColumns() {
-    return _columnHeaders.map((header) => DataColumn(label: Text(header))).toList();
+    return _columnHeaders.map((header) => DataColumn(label:Text(header))).toList();
   }
 
   List<DataRow> _buildRows() {
-    return widget.data.map((rowData) => DataRow(
-          cells: rowData.entries.map((d) => DataCell(Text(d.toString()))).toList(),
-        )).toList();
+    return widget.data.asMap().entries.map((item) {
+      List<DataCell> cells = [];
+      int rowIndex=item.key;
+      for (var key in _columnHeaders) {
+        cells.add(DataCell(Center(child:GestureDetector(onTap: ()=>_editCell(rowIndex, key), child:Text(item.value[key]?.toString() ?? ''), ))));
+      }
+      return DataRow(cells: cells);
+    }).toList();
   }
   @override
   Widget build(BuildContext context) {
-    return DataTable(
+    return Expanded(child:DataTable(  
+      columnSpacing: 30.0,
+                  headingRowHeight: 50, // 헤더 높이 고정
+                  dataRowHeight: 40,
           columns: _buildColumns(),
           rows:_buildRows(),
-    );
+    ));
     
 }
   

@@ -32,8 +32,6 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   desktop_window: ^0.4.0
-  firebase_core: ^3.12.1 # Firebase 초기화
-  firebase_storage: ^12.4.4 # Firebase Storage
   image_picker: ^1.1.2 # 이미지 선택
   file_picker: ^9.2.0 # 파일 선택 (로컬 파일 시스템)
   googleapis: ^14.0.0

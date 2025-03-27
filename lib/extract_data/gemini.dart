@@ -26,7 +26,7 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   );
 
   // Load the image file and encode it in base64
-  final prompt = '이미지의 모든 텍스트를 추출해주세요. 숫자는 소수점에 유의하여 주어진 형식에 맞춰서 추출해주세요.';
+  final prompt = '이 표의 글자와 손글씨를 OCR로 변환해주세요. 표 안에 빈칸이 있으면 0으로 채워주시고, 모든 숫자는 소수점을 정확하게 인식해서 다음과 같은 형태로 추출해주세요. 행과 열에 유의하여 해주세요.';
   final response = await model.generateContent([
     Content.multi([
       TextPart(prompt), // 텍스트 추출을 명시하는 프롬프트

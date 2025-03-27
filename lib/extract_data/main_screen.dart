@@ -11,6 +11,7 @@ import 'gemini.dart';
 import '../crop_config/schema.dart';
 import 'android_screen.dart';
 import 'windows_screen.dart';
+import 'package:window_manager/window_manager.dart';
 
 class EnterDataScreen extends StatefulWidget {
   const EnterDataScreen({super.key});
@@ -35,6 +36,22 @@ class _EnterDataScreenState extends State<EnterDataScreen> {
             Navigator.of(context).pop();
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              windowManager.close();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            color: Colors.grey[700],
+            onPressed: () {
+              // 환경설정 기능 구현
+              print('환경설정 버튼 클릭');
+            },
+          ),
+        ],
       ),
       body: Center(
         child:
