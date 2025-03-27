@@ -10,8 +10,8 @@ Future<Uint8List> cleanImage(File picture) async {
   }
 
   // Define color ranges for masking
-  final redMin = [110, 0, 0];
-  final redMax = [255, 190, 190];
+  final redMin = [150, 0, 0];
+  final redMax = [255, 225, 225];
   // final grayMin = [190, 190, 190];
   // final grayMax = [255, 255, 230];
 

@@ -20,8 +20,10 @@ class WindowsEnterDataLayout extends StatefulWidget {
 
 class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   File? selectedImage;
+  Uint8List? editedImage;
 
   Map<String, dynamic>? crop;
+  List<Map<String, dynamic>>? _data;
 
   final TextEditingController farmNameController = TextEditingController();
   final TextEditingController cropNameController = TextEditingController();
@@ -38,10 +40,18 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   }
   
 Future<void> extractImage() async {
-  Map<String, dynamic> _crop=await extractData(await cleanImage(selectedImage!));
+  Uint8List img=await cleanImage(selectedImage!);
+  Map<String, dynamic> _crop=await extractData(img);
   if (selectedImage!=null){
     setState(() {
+      editedImage=img;
       crop= _crop;
+      if (crop!["작물명"]=="파프리카"){
+        _data= new List<Map<String, dynamic>>.from(crop!["data"]["파프리카"]["생육조사"]);
+      }
+      farmNameController.text=crop!["농가명"];
+      cropNameController.text=crop!["작물명"];
+      surveyDateController.text=crop!["조사일"];
     });
   }
 }
@@ -49,11 +59,11 @@ Future<void> extractImage() async {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(1.0),
-      child: Column(
+      child: Row(
         children: [
           // 좌측 영역
           Expanded(
-            flex: 15,
+            flex: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -63,7 +73,6 @@ Future<void> extractImage() async {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          getImage(ImageSource.gallery);
                           getImage(ImageSource.gallery);
                         },
                         icon: const Icon(Icons.photo),
@@ -77,7 +86,7 @@ Future<void> extractImage() async {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width:16),
                       ElevatedButton.icon(
                         onPressed: () {
                           getImage(ImageSource.camera);
@@ -106,7 +115,7 @@ Future<void> extractImage() async {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child:
-                        selectedImage != null
+                        selectedImage!= null
                             ? Image.file(selectedImage!, fit: BoxFit.fill)
                             : Center(child: Text('이미지를 로드하세요')),
                   ),
@@ -115,31 +124,30 @@ Future<void> extractImage() async {
               ],
             ),
           ),
-          const SizedBox(width: 16),
           // 야장추출 버튼
           Expanded(
             flex: 1,
             child: TextButton(
               onPressed: () {
-                cleanImage(selectedImage!);
+                if(selectedImage !=null){
+                extractImage();}
                 // Map<String, dynamic> extractData(_editedImage!);
                 print('Text Button pressed!');
                 // 여기에 텍스트 버튼 클릭 시 수행할 동작을 작성합니다.
               },
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min, // 내용물에 맞게 크기 조절
                 children: <Widget>[
-                  Text('야장추출'),
-                  SizedBox(width: 8), // 텍스트와 아이콘 사이 간격
+                  Center(child:Text('야장추출')),
+                  SizedBox(height:10), // 텍스트와 아이콘 사이 간격
                   Icon(Icons.arrow_forward),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 16),
           // 우측 영역
           Expanded(
-            flex: 15,
+            flex: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -183,7 +191,6 @@ Future<void> extractImage() async {
                     ],
                   ),
                 ),
-
                 // 표를 띄우는 컨테이너
                 Expanded(
                   flex: 7,
@@ -192,9 +199,9 @@ Future<void> extractImage() async {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: crop!=null && crop!["작물명"]=="파프리카"
-                    ?PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
-                    :PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
+                    child: _data!=null
+                    ?PepperWidget(data: _data!)
+                    :Center(child:Text("야장추출 버튼을 클릭하세요"))
                   ),
                 ),
                 Expanded(

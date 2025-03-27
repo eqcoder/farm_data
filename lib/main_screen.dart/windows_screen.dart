@@ -31,7 +31,7 @@ Widget build(BuildContext context) {
                 children: [
                   Spacer(flex: 2),
                   Expanded(
-                    flex: 5, // 가로 공간의 2/3 차지
+                    flex: 7, // 가로 공간의 2/3 차지
                     child: RoundedButton(text:'출장', onpressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -44,7 +44,7 @@ Widget build(BuildContext context) {
                   ),
                   Spacer(flex: 1),
                   Expanded(
-                    flex: 5,
+                    flex: 7,
                     child: RoundedButton(text: '야장추출', onpressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -56,7 +56,7 @@ Widget build(BuildContext context) {
                   ),
                   Spacer(flex: 1),
                   Expanded(
-                    flex: 5,
+                    flex: 7,
                     child: RoundedButton(text: '농가정보', onpressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -68,14 +68,14 @@ Widget build(BuildContext context) {
                   ),
                   Spacer(flex: 1),
                   Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                   Spacer(flex: 1),
                   Expanded(
-                    flex: 5,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed: () {
                       print('버튼 2 클릭');
                     }),
@@ -85,41 +85,44 @@ Widget build(BuildContext context) {
               ),
             ),
           ),
+          Spacer(flex:1),
           Expanded(
             flex: 2,
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Spacer(flex: 2),
                 Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 7,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
@@ -128,9 +131,6 @@ Widget build(BuildContext context) {
               ],
             ),
           ),
-          Expanded(
-            flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
-          ),
+          Spacer(flex:4)
         ],
       );}}
