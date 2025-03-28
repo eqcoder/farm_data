@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:googleapis_auth/googleapis_auth.dart' as auth;
+import 'package:googleapis_auth/googleapis_auth.dart' as google_auth;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -10,11 +10,118 @@ import 'package:googleapis/sheets/v4.dart' as sheets;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 
 const _clientId =
     "455278327943-k1o8o9nm6bs41trsbppuoaof19c136eb.apps.googleusercontent.com";
 const _scopes = ['https://www.googleapis.com/auth/drive.file'];
+
+
+class BackUpRepository {
+  static final BackUpRepository instance = BackUpRepository._internal();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: [drive.DriveApi.driveFileScope],
+  );
+  BackUpRepository._internal();
+  drive.DriveApi? _driveApi;
+  
+  //로그인
+  Future<void> signIn() async {
+    final GoogleSignInAccount? account = await _googleSignIn.signIn();
+    if (account == null) {
+      print('사용자 로그인 취소');
+      return;
+    }
+
+    final GoogleSignInAuthentication authentication = await account.authentication;
+
+  // AccessCredentials 객체 생성
+  final google_auth.AccessCredentials credentials = google_auth.AccessCredentials(
+    google_auth.AccessToken(
+      'Bearer',  // 토큰 타입
+      authentication.accessToken!, // String을 AccessToken으로 변환
+      DateTime.now().add(Duration(hours: 1)), // 만료 시간 (예제)
+    ),
+    authentication.idToken,  // ID 토큰 (nullable)
+    [], // 권한 범위 (여기서는 빈 배열)
+  );
+
+    final GoogleSignInAuthentication auth = await account.authentication;
+    final google_auth.AuthClient client = google_auth.authenticatedClient(
+      http.Client(),
+      credentials,
+    );
+
+    _driveApi = drive.DriveApi(client);
+    print('✅ 로그인 성공: ${account.email}');
+  }
+
+ //로그아웃
+  Future<void> signOut() async {
+    GoogleSignIn googleSignIn = GoogleSignIn();
+    await googleSignIn.signOut();
+  }
+
+  Future<void> getDriveApi(
+      GoogleSignInAccount googleSignInAccount) async {
+    final header = await googleSignInAccount.authHeaders;
+    GoogleAuthClient googleAuthClient = GoogleAuthClient(header: header);
+    _driveApi= drive.DriveApi(googleAuthClient);
+  }
+
+  Future<drive.File?> upLoad(
+      {required drive.DriveApi driveApi,
+      required File file,
+      String? driveFileId}) async {
+    // 드라이브 업로드용 파일 정보
+    drive.File driveFile = drive.File();
+
+    //앱에 저장된 파일 이름 추출
+    driveFile.name = path.basename(file.absolute.path);
+
+    late final response;
+    if (driveFileId != null) {
+      response = await driveApi.files.update(driveFile, driveFileId,
+          uploadMedia: drive.Media(file.openRead(), file.lengthSync()));
+    } else {
+      driveFile.parents = ["appDataFolder"];
+      response = await driveApi.files.create(driveFile,
+          uploadMedia: drive.Media(file.openRead(), file.lengthSync()));
+    }
+    return response;
+  }
+   Future<File> downLoad(
+      {required String driveFileId,
+      required drive.DriveApi driveApi,
+      required String localPath}) async {
+    drive.Media media = await driveApi.files.get(driveFileId,
+        downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+
+    List<int> data = [];
+
+    await media.stream.forEach((element) {
+      data.addAll(element);
+    });
+
+    File file = File(localPath);
+    file.writeAsBytesSync(data);
+
+    return file;
+  }
+}
+
+class GoogleAuthClient extends http.BaseClient {
+  final Map<String, String> header;
+  final http.Client client = http.Client();
+
+  GoogleAuthClient({required this.header});
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers.addAll(header);
+    return client.send(request);
+  }}
+
 
 class SecureStorage {
   final storage = FlutterSecureStorage();
@@ -132,7 +239,7 @@ class GoogleDrive {
       drive.File fileToUpload = drive.File();
       fileToUpload.parents = [folderId];
       for (var file in files) {
-        fileToUpload.name = p.basename(file!.absolute.path);
+        fileToUpload.name = path.basename(file!.absolute.path);
         var response = await gdrive.files.create(
           fileToUpload,
           uploadMedia: drive.Media(file.openRead(), file.lengthSync()),

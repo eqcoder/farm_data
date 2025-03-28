@@ -5,8 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../crop_config/schema.dart';
+import 'dart:collection';
 
-Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
+Future<LinkedHashMap<String, dynamic>> extractData(Uint8List imageBytes) async {
   await dotenv.load(); // Load environment variables
   final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; // Fetch API key
   if (apiKey.isEmpty) {
@@ -34,6 +35,9 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
     ]),
   ]);
   print(response.text!);
-  Map<String, dynamic> jsonData = jsonDecode(response.text!);
+  LinkedHashMap<String, dynamic> jsonData = jsonDecode(response.text!, reviver: (key, value) {
+    // 순서를 보장하는 LinkedHashMap 사용
+    return LinkedHashMap.from({key: value});
+  });
   return jsonData;
 }
