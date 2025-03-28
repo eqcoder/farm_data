@@ -7,9 +7,16 @@ import 'business_trip/business_trip_screen.dart';
 import 'farm_info/farm_info_screen.dart';
 import 'main_screen.dart/android_screen.dart';
 import 'main_screen.dart/windows_screen.dart';
+import 'main_screen.dart/login.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isAndroid){
+  await Firebase.initializeApp();}
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
     initWindows();
@@ -104,8 +111,8 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       body: Platform.isAndroid
-                ? AndroidMainScreen()
-                : WindowsMainScreen(),
+          ? SplashScreen() // 안드로이드 화면
+          : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정
       bottomNavigationBar: const BottomAppBar(
         // BottomAppBar를 사용하여 바닥에 공간 확보
         child: Padding(

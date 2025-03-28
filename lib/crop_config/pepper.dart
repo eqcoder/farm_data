@@ -83,7 +83,7 @@ class _PepperWidgetState extends State<PepperWidget> {
  void _editCell(int rowIndex, String columnName) async {
   print("edit cell 클릭");
     TextEditingController controller =
-        TextEditingController(text: widget.data[rowIndex][columnName]);
+        TextEditingController(text: widget.data[rowIndex][columnName].toString());
 
     showDialog(
       context: context,
