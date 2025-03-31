@@ -12,11 +12,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'main_screen.dart/auth_rapper.dart';
+import 'package:provider/provider.dart';
+import 'provider.dart' as provider;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isAndroid){
-  await Firebase.initializeApp();}
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform,);}
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
     initWindows();
@@ -25,7 +29,10 @@ void main() async {
   await dotenv.load(fileName: '.env');
   // await extractData('D:/Desktop/farm/farm_data/tomato1.JPG');
 
-  runApp(const AgriculturalBigdataApp());
+  runApp( MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => provider.AuthProvider()),
+      ],child:const AgriculturalBigdataApp()));
 }
 
 // 클래스 추
@@ -111,7 +118,7 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       body: Platform.isAndroid
-          ? SplashScreen() // 안드로이드 화면
+          ? AuthWrapper() // 안드로이드 화면
           : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정
       bottomNavigationBar: const BottomAppBar(
         // BottomAppBar를 사용하여 바닥에 공간 확보

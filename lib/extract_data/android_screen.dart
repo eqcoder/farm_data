@@ -12,6 +12,10 @@ import '../crop_config/tomato.dart';
 import '../crop_config/pepper.dart';
 import 'enter_data.dart';
 import 'gemini.dart';
+import 'dart:convert';
+import 'package:gallery_saver_plus/gallery_saver.dart';
+
+
 
 class AndroidEnterDataLayout extends StatefulWidget {
 
@@ -20,9 +24,10 @@ class AndroidEnterDataLayout extends StatefulWidget {
 
 class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
   File? selectedImage;
-
+  List<Map<String, dynamic>>? _data;
   Uint8List? editedImage;
   Map<String, dynamic>? crop;
+  bool isLoading = false;
 
   final TextEditingController farmNameController = TextEditingController();
   final TextEditingController cropNameController = TextEditingController();
@@ -39,18 +44,55 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
   }
   
 Future<void> extractImage() async {
+  showDialog(
+      context: context,
+      barrierDismissible: false, // 다이얼로그 외부 클릭 방지
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(), // 로딩 인디케이터
+                SizedBox(height: 16),
+                Text(
+                  "이미지에서 데이터를 추출하는 중입니다...",
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   Uint8List img=await cleanImage(selectedImage!);
   Map<String, dynamic> _crop=await extractData(img);
   if (selectedImage!=null){
     setState(() {
       editedImage=img;
       crop= _crop;
-      print(crop!["농가명"]);
+      if (crop!["작물명"]=="파프리카"){
+        _data= List<Map<String, dynamic>>.from(crop!["data"]["파프리카"]["생육조사"]);
+      }
       farmNameController.text=crop!["농가명"];
       cropNameController.text=crop!["작물명"];
       surveyDateController.text=crop!["조사일"];
-    });
-  }
+      isLoading=false;
+  });
+}
+Navigator.of(context).pop();
+}
+
+Future<void> writeToExcel() async{
+  final pythonScript = 'pepper.py'; // Python 스크립트 경로
+  await Process.run('python', [pythonScript, json.encode(_data),"D:/Desktop/farm_data/25년_파프리카_강원_생육기본_김관섭_1작기.xlsm", farmNameController.text, crop!["지난_조사일"],surveyDateController.text]);
+    // Python 스크립트를 실행하고, 데이터 전달
+    
+
+    // Python에서 반환된 결과
+
 }
   @override
   Widget build(BuildContext context) {
@@ -63,6 +105,7 @@ Future<void> extractImage() async {
                   flex: 2,
                   child: Row(
                     children: [
+                      SizedBox(width:16),
                       ElevatedButton.icon(
                         onPressed: () {
                           getImage(ImageSource.gallery);
@@ -108,8 +151,8 @@ Future<void> extractImage() async {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child:
-                        editedImage != null
-                            ? Image.memory(editedImage!, fit: BoxFit.fill)
+                        selectedImage != null
+                            ? Image.file(selectedImage!, fit: BoxFit.fill)
                             : Center(child: Text('이미지를 로드하세요')),
                   ),
                 ),
@@ -185,9 +228,10 @@ Future<void> extractImage() async {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    child: crop !=null&&crop!["작물명"]=="파프리카"
-                    ?PepperWidget(data:crop!["data"]["파프리카"]["생육조사"])
-                    :Center(child:Text("추출버튼을 눌러주세요"))
+                    child: _data!=null
+                  ?PepperWidget(data: _data!)
+                  :Center(child:Text("야장추출 버튼을 클릭하세요"))
+                
                   ),
                 ),
                 Spacer(flex:1),
@@ -225,6 +269,7 @@ Future<void> extractImage() async {
                           ),
                         ),
                       ),
+                      SizedBox(width:16)
                     ],
                   ),
                 ),

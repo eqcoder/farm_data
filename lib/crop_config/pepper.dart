@@ -4,8 +4,10 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 final Schema schema = Schema.object(
   properties: {
-    '생육조사': Schema.array(nullable: false,
-      items: Schema.object(nullable: false,
+    '생육조사': Schema.array(
+      nullable: false,
+      items: Schema.object(
+        nullable: false,
         properties: {
           '개체': Schema.integer(nullable: false),
           '줄기번호': Schema.integer(nullable: false),
@@ -24,7 +26,24 @@ final Schema schema = Schema.object(
           '열매수': Schema.integer(nullable: false),
           '수확수': Schema.integer(nullable: false),
         },
-        requiredProperties: ['개체', '줄기번호', '생장길이', '엽수', '엽장', '엽폭', '줄기굵기', '화방높이', '개화마디', '착과마디', '열매마디', '수확마디', '개화수', '착과수', '열매수', '수확수'],
+        requiredProperties: [
+          '개체',
+          '줄기번호',
+          '생장길이',
+          '엽수',
+          '엽장',
+          '엽폭',
+          '줄기굵기',
+          '화방높이',
+          '개화마디',
+          '착과마디',
+          '열매마디',
+          '수확마디',
+          '개화수',
+          '착과수',
+          '열매수',
+          '수확수',
+        ],
       ),
     ),
   },
@@ -67,6 +86,8 @@ class Tomato {
   });
 }
 
+class PepperExcelData {}
+
 class PepperWidget extends StatefulWidget {
   final List<Map<String, dynamic>> data;
   const PepperWidget({super.key, required this.data});
@@ -76,28 +97,44 @@ class PepperWidget extends StatefulWidget {
 }
 
 class _PepperWidgetState extends State<PepperWidget> {
-  
-  final List<String> _columnHeaders = ['개체', '줄기번호', '생장길이', '엽수', '엽장', '엽폭', '줄기굵기', '화방높이', '개화마디', '착과마디', '열매마디', '수확마디', '개화수', '착과수', '열매수', '수확수'];
-  
+  final List<String> _columnHeaders = [
+    '개체',
+    '줄기번호',
+    '생장길이',
+    '엽수',
+    '엽장',
+    '엽폭',
+    '줄기굵기',
+    '화방높이',
+    '개화마디',
+    '착과마디',
+    '열매마디',
+    '수확마디',
+    '개화수',
+    '착과수',
+    '열매수',
+    '수확수',
+  ];
 
- void _editCell(int rowIndex, String columnName) async {
-  print("edit cell 클릭");
-    TextEditingController controller =
-        TextEditingController(text: widget.data[rowIndex][columnName].toString());
+  void _editCell(int rowIndex, String columnName) async {
+    print("edit cell 클릭");
+    TextEditingController controller = TextEditingController(
+      text: widget.data[rowIndex][columnName].toString(),
+    );
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("$columnName 수정"),
+          title: Text("개체 ${widget.data[rowIndex]["개체"]}-${widget.data[rowIndex]["줄기번호"]} $columnName 수정"),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(border: OutlineInputBorder()),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: Text("취소")
+              onPressed: () => Navigator.pop(context),
+              child: Text("취소"),
             ),
             TextButton(
               onPressed: () {
@@ -115,29 +152,47 @@ class _PepperWidgetState extends State<PepperWidget> {
   }
 
   List<DataColumn> _buildColumns() {
-    return _columnHeaders.map((header) => DataColumn(label:Text(header))).toList();
+    return _columnHeaders
+        .map((header) => DataColumn(label: Text(header)))
+        .toList();
   }
 
   List<DataRow> _buildRows() {
     return widget.data.asMap().entries.map((item) {
       List<DataCell> cells = [];
-      int rowIndex=item.key;
+      int rowIndex = item.key;
       for (var key in _columnHeaders) {
-        cells.add(DataCell(Center(child:GestureDetector(onTap: ()=>_editCell(rowIndex, key), child:Text(item.value[key]?.toString() ?? ''), ))));
+        cells.add(
+          DataCell(
+            Center(
+              child: GestureDetector(
+                onTap: () => _editCell(rowIndex, key),
+                child: Text(item.value[key]?.toString() ?? ''),
+              ),
+            ),
+          ),
+        );
       }
       return DataRow(cells: cells);
     }).toList();
   }
+
   @override
   Widget build(BuildContext context) {
-    return Expanded(child:DataTable(  
-      columnSpacing: 30.0,
-                  headingRowHeight: 50, // 헤더 높이 고정
-                  dataRowHeight: 40,
-          columns: _buildColumns(),
-          rows:_buildRows(),
-    ));
-    
-}
-  
+    return Expanded(
+      child:SingleChildScrollView(
+        scrollDirection: Axis.vertical, // 가로 스크롤
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columnSpacing: 30.0,
+            headingRowHeight: 50, // 헤더 높이 고정
+            dataRowHeight: 40,
+            columns: _buildColumns(),
+            rows: _buildRows(),
+          ),
+        ),
+      ),
+    );
+  }
 }

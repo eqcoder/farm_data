@@ -16,6 +16,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _cropController = TextEditingController();
   TextEditingController _addressController = TextEditingController();
+  int? selectedIndex;
   @override
   void initState() {
     super.initState();
@@ -113,45 +114,71 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     _loadFarms(); // 데이터 다시 로드
   }
 
-  _onRowSelected(Farm farm) {
-    setState(() {
-      selectedFarm = farm;
-    });
+  _deleteFarm(BuildContext context) async{
+    await FarmDatabase.instance.deleteData(selectedFarm!.id!);
+    Navigator.pop(context, true);
+  }
+
+  _confirmDelete(BuildContext context) async {
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('삭제 확인'),
+      content: Text('정말로 ${selectedFarm!.name} 농가를 삭제하시겠습니까?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('취소')),
+        TextButton(onPressed: () =>_deleteFarm(context), child: Text('확인'))
+      ],
+    ),
+
+  );
+  _loadFarms();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('농가 데이터')),
-      body: Column(
-        children: [
-          ElevatedButton(
+      body: Column(children:[Spacer(flex:1),Expanded(flex:1, child:Row(
+        children: [Spacer(flex:1),
+          Expanded(flex:5, child:ElevatedButton(
             onPressed: () => _openFarmDialog(), // 농가 추가 다이얼로그
             child: Text('농가 추가'),
-          ),
+          )),
+          Spacer(flex:1),
           if (selectedFarm != null)
-            ElevatedButton(
+            Expanded(flex:5, child:ElevatedButton(
               onPressed:
                   () => _openFarmDialog(farm: selectedFarm!), // 농가 수정 다이얼로그
               child: Text('정보 수정'),
-            ),
+            )),Spacer(flex:1),if (selectedFarm != null)Expanded(flex:5, child:ElevatedButton(
+              onPressed:
+                  () => _confirmDelete(context), // 농가 수정 다이얼로그
+              child: Text('농가 삭제'),
+            )),Spacer(flex:1)]),),
           Expanded(
+            flex:30,
             child: ListView(
               children: [
                 DataTable(
+                  showCheckboxColumn: false, 
                   columns: [
                     DataColumn(label: Text('농가명')),
                     DataColumn(label: Text('작물')),
                     DataColumn(label: Text('주소')),
                   ],
                   rows:
-                      farms.map((farm) {
+                      farms.asMap().entries.map((entry) {
                         return DataRow(
-                          onSelectChanged: (_) => _onRowSelected(farm),
+                          selected: selectedIndex == entry.key, // 선택 상태 설정
+                          onSelectChanged: (isSelected) { setState(() {
+      selectedFarm = entry.value;
+      selectedIndex = entry.key;
+    });},
                           cells: [
-                            DataCell(Text(farm.name)),
-                            DataCell(Text(farm.crop)),
-                            DataCell(Text(farm.address)),
+                            DataCell(Text(entry.value.name)),
+                            DataCell(Text(entry.value.crop)),
+                            DataCell(Text(entry.value.address)),
                           ],
                         );
                       }).toList(),

@@ -10,26 +10,36 @@ import 'dart:io';
 import '../business_trip/business_trip_screen.dart';
 import '../farm_info/farm_info_screen.dart';
 import 'form.dart';
+import 'package:provider/provider.dart';
+import '../provider.dart' as provider;
 
 
 class AndroidMainScreen extends StatelessWidget {
-
 Widget build(BuildContext context) {
+  final user = Provider.of<provider.AuthProvider>(context).user;
     return Column(
         children: [
           Expanded(
             flex: 4,
             child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
           ),
+          Expanded(flex:1,
+          child:user!=null?Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Logged in as: ${user.displayName ?? "Unknown"}', style:TextStyle(fontSize:24)),
+                  Text('Email: ${user.email ?? "Unknown"}'),
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(user.photoURL ?? ""),
+                  ),
+                ],
+              ):Text("로그인을 해주세요"),),
           Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Row(
+            flex: 2,child:Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Spacer(flex: 2),
+                  Spacer(flex: 1),
                   Expanded(
                     flex: 5, // 가로 공간의 2/3 차지
                     child: RoundedButton(text:'출장', onpressed: () {
@@ -54,48 +64,58 @@ Widget build(BuildContext context) {
                       print('데이터 입력 클릭');
                     }),
                   ),
-                  
+                  Spacer(flex:1),
                 ],
               ),
-            ),
           ),
+          Spacer(flex:1),
           Expanded(
             flex: 2,
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Spacer(flex: 2),
+                Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
+                    flex: 5,
+                    child: RoundedButton(text:'농가정보', onpressed:() {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (BuildContext context) => FarmInfoScreen(),
+                        ),
+                      );
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 5,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 
-                Spacer(flex: 2),
+                Spacer(flex: 1),
               ],
             ),
           ),
-          Expanded(flex:2, child:Row(children: [Spacer(flex: 1),
+          Spacer(flex:1),
+          Expanded(flex:2, child:Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.stretch,children: [Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 5,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
                   ),
                 Spacer(flex: 1),
                 Expanded(
-                    flex: 4,
+                    flex: 5,
                     child: RoundedButton(text:'버튼 2', onpressed:() {
                       print('버튼 2 클릭');
                     }),
-                  ),],),),
+                  ),Spacer(flex:1)],),),
+                  Spacer(flex:1),
           Expanded(
             flex: 4,
             child: Container(color: const Color.fromARGB(255, 255, 255, 255)),

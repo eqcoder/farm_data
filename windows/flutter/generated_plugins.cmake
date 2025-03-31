@@ -11,7 +11,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_secure_storage_windows
   permission_handler_windows
   screen_retriever_windows
-  serious_python_windows
   url_launcher_windows
   window_manager
 )

@@ -15,6 +15,7 @@ class Farm {
 
   Farm({this.id, required this.name, required this.crop, required this.address});
 
+  
   // 농가 데이터를 Map 형태로 변환
   Map<String, dynamic> toMap() {
     return {
@@ -51,7 +52,7 @@ class FarmDatabase {
   Future<Database> _initDB(String path) async {
     final dbPath = await getDatabasesPath();
     final fullpath = join(dbPath, path);
-
+    
     return await openDatabase(
       fullpath,
       version: 1,
@@ -62,6 +63,7 @@ class FarmDatabase {
             name TEXT,
             crop TEXT,
             address TEXT
+            survey_photos TEXT
           )
         ''');
       },
@@ -70,18 +72,18 @@ class FarmDatabase {
 
 
   Future<List<String>> getFarmNames() async {
-    final db=_database!;
+    final db = await instance.database;
     final List<Map<String, dynamic>> result = await db.query('farms');
     return result.map((row) => row['name'] as String).toList();
   }
 
   Future<int> insertFarm(Farm farm) async {
-  final db = await FarmDatabase.instance.database;
+  final db = await instance.database;
   return await db.insert('farms', farm.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
 }
 
   Future<void> updateFarm(Farm farm) async {
-    final db = _database!;
+    final db = await instance.database;
     await db.update(
       'farms',
       farm.toMap(),
@@ -92,6 +94,7 @@ class FarmDatabase {
 
   Future<List<Farm>> getAllFarms() async {
     final db = await instance.database;
+    
     final List<Map<String, dynamic>> maps = await db.query('farms');
 
     return List.generate(maps.length, (i) {
@@ -99,7 +102,7 @@ class FarmDatabase {
     });
   }
 
-  Future<int> updateSurveyPhotos(String farmName, List<String> newPhotos) async {
+  Future<int> updateSurveyPhotos(String farmName, List<String?> newPhotos) async {
   final db = await FarmDatabase.instance.database;
 
   return await db.update(
@@ -107,8 +110,17 @@ class FarmDatabase {
     {
       'survey_photos': jsonEncode(newPhotos), // 리스트를 JSON 문자열로 변환 후 저장
     },
-    where: 'farm_name = ?',
+    where: 'name = ?',
     whereArgs: [farmName],
+    conflictAlgorithm: ConflictAlgorithm.replace,
   );
 }
+Future<void> deleteData(int id) async {
+    final db = await FarmDatabase.instance.database;
+    await db.delete(
+      'farms',
+      where: 'id = ?', // ID 기준으로 삭제
+      whereArgs: [id], // 삭제할 ID 값
+    );
+  }
 }

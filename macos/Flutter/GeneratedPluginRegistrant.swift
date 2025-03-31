@@ -14,7 +14,6 @@ import flutter_secure_storage_macos
 import google_sign_in_ios
 import path_provider_foundation
 import screen_retriever_macos
-import serious_python_darwin
 import shared_preferences_foundation
 import sqflite_darwin
 import url_launcher_macos
@@ -30,7 +29,6 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FLTGoogleSignInPlugin.register(with: registry.registrar(forPlugin: "FLTGoogleSignInPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))
-  SeriousPythonPlugin.register(with: registry.registrar(forPlugin: "SeriousPythonPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   SqflitePlugin.register(with: registry.registrar(forPlugin: "SqflitePlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
