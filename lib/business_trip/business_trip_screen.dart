@@ -40,24 +40,9 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
     String apiUrl =
         "https://api.openweathermap.org/data/2.5/weather?q=$farmAddress&appid=$apiKey&units=metric&lang=kr";
 
-    try {
       final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         setState(() {
-          weatherInfo =
-              "${data['weather'][0]['description']}, ${data['main']['temp']}°C";
-        });
-      } else {
-        setState(() {
-          weatherInfo = "날씨 정보를 가져오지 못했습니다.";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        weatherInfo = "날씨 정보를 불러오는 중 오류 발생.";
-      });
-    }
+          weatherInfo = "날씨 정보를 가져오지 못했습니다.";});
   }
 
   Future<void> _openGoogleMaps() async {
@@ -83,7 +68,9 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(selectedFarm ?? "농가 선택")),
       body: Expanded(
-        child: Column(
+        child: Center(child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
+            crossAxisAlignment: CrossAxisAlignment.center, 
           children: [
             DropdownButton<String>(
               value: selectedFarm,
@@ -117,7 +104,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
             ElevatedButton(onPressed: _openOpinet, child: Text("길안내")),
             ElevatedButton(onPressed: _openGoogleMaps, child: Text("오피넷")),
           ],
-        ),
+        ),)
       ),
     );
   }

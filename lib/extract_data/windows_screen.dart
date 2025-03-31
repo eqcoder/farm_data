@@ -16,10 +16,8 @@ import 'package:excel/excel.dart' as excel;
 import 'package:path_provider/path_provider.dart';
 import 'package:camera_windows/camera_windows.dart';
 import '../camera/camera.dart';
-import 'package:serious_python/serious_python.dart';
 import 'dart:convert';
 import 'dart:collection';
-
 class WindowsEnterDataLayout extends StatefulWidget {
 
   _WindowsEnterDataWidgetState createState() => _WindowsEnterDataWidgetState();
@@ -106,7 +104,7 @@ Future<void> extractImage(BuildContext context) async {
       isLoading = true;
     });
   Uint8List img=await cleanImage(selectedImage!);
-  LinkedHashMap<String, dynamic> _crop=await extractData(img);
+  Map<String, dynamic> _crop=await extractData(img);
   if (selectedImage!=null){
     setState(() {
       editedImage=img;
