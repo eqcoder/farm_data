@@ -1,81 +1,183 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
+import 'provider.dart';
 
-class Setting extends StatefulWidget {
+class SettingsDialog extends StatefulWidget {
+  const SettingsDialog({super.key});
+
   @override
-  _SettingState createState() => _SettingState();
+  State<SettingsDialog> createState() => _SettingsDialogState();
 }
 
-class _SettingState extends State<Setting> {
-  bool _isDarkMode = false;
-  String _username = '';
+class _SettingsDialogState extends State<SettingsDialog> {
+  late TextEditingController _folderController;
+  late List<TextEditingController> _memberControllers;
 
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    _folderController = TextEditingController(text: settings.folderPath);
+    _memberControllers = settings.groupMembers
+        .map((member) => TextEditingController(text: member))
+        .toList();
   }
 
-  // 설정값 불러오기
-  Future<void> _loadSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = prefs.getBool('darkMode') ?? false;
-      _username = prefs.getString('username') ?? '';
-    });
-  }
-
-  // 다크 모드 설정 변경 및 저장
-  Future<void> _toggleDarkMode(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = value;
-      prefs.setBool('darkMode', value); // 설정값 저장
-    });
-    // 테마 적용 코드 (예시)
-    // if (value) {
-    //   // 다크 모드 테마 적용
-    // } else {
-    //   // 라이트 모드 테마 적용
-    // }
-  }
-
-  // 사용자 이름 변경 및 저장
-  Future<void> _setUsername(String value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _username = value;
-      prefs.setString('username', value); // 설정값 저장
-    });
+  Future<void> _pickFolder() async {
+    final path = await FilePicker.platform.getDirectoryPath();
+    if (path != null) {
+      _folderController.text = path;
+      Provider.of<SettingsProvider>(context, listen: false).setFolderPath(path);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App Settings',
-      theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(), // 다크 모드 적용
-      home: Scaffold(
-        appBar: AppBar(title: Text('설정')),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SwitchListTile(
-                title: Text('다크 모드'),
-                value: _isDarkMode,
-                onChanged: _toggleDarkMode,
-              ),
-              SizedBox(height: 20),
-              Text('현재 사용자 이름: $_username'),
-              TextField(
-                decoration: InputDecoration(labelText: '새로운 사용자 이름'),
-                onChanged: _setUsername,
-              ),
-            ],
-          ),
+    final settings = Provider.of<SettingsProvider>(context);
+
+    return AlertDialog(
+      title: const Text('환경설정'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 폴더 경로 선택
+            _buildFolderSelector(),
+            const SizedBox(height: 20),
+            // 조 선택
+            _buildGroupSelector(),
+            const SizedBox(height: 20),
+            // 조원 입력
+            _buildMemberInput(),
+            const SizedBox(height: 20),
+            // 다크 모드 토글
+            _buildDarkModeToggle(),
+          ],
         ),
       ),
+      actions: [
+        // 취소 버튼
+        TextButton(
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        // 저장 버튼
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+          onPressed: () {
+            settings.saveSettings();
+            Navigator.pop(context);
+          },
+          child: const Text('저장'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFolderSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _folderController,
+            decoration: const InputDecoration(
+              labelText: '생육원본 폴더경로',
+              border: OutlineInputBorder(),
+            ),
+            readOnly: true,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.folder_open),
+          onPressed: _pickFolder,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupSelector() {
+    return DropdownButtonFormField<int>(
+      value: Provider.of<SettingsProvider>(context).selectedGroup,
+      items: List.generate(6, (index) => index + 1)
+          .map((group) => DropdownMenuItem(
+                value: group,
+                child: Text('$group 조'),
+              ))
+          .toList(),
+      onChanged: (value) {
+        Provider.of<SettingsProvider>(context, listen: false)
+            .setSelectedGroup(value!);
+      },
+      decoration: const InputDecoration(
+        labelText: '조 선택',
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildMemberInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('조원 (최대 3명)'),
+        ..._memberControllers
+            .asMap()
+            .entries
+            .map((entry) => Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: TextField(
+                    controller: entry.value,
+                    decoration: const InputDecoration(
+                      hintText: '조원 이름',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      final members = _memberControllers
+                          .map((controller) => controller.text)
+                          .where((member) => member.isNotEmpty)
+                          .toList();
+                      Provider.of<SettingsProvider>(context, listen: false)
+                          .setGroupMembers(members);
+                    },
+                  ),
+                ))
+            .toList(),
+        if (_memberControllers.length < 3)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _memberControllers.add(TextEditingController());
+              });
+            },
+            child: const Text('+ 조원 추가'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDarkModeToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text('다크 모드'),
+        Switch(
+          value: Provider.of<SettingsProvider>(context).isDarkMode,
+          onChanged: (value) {
+            Provider.of<SettingsProvider>(context, listen: false)
+                .toggleDarkMode(value);
+          },
+        ),
+      ],
     );
   }
 }

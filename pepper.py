@@ -7,22 +7,36 @@ import json
 import win32com.client
 import function
 from datetime import datetime
-
+from collections import OrderedDict
 
 def transpose(l:list):
     return [list(d) for d in zip(*l)]
     
 if __name__ =="__main__":
-
-    print("hello")
+    key_order=['개체',
+    '줄기번호',
+    '생장길이',
+    '엽수',
+    '엽장',
+    '엽폭',
+    '줄기굵기',
+    '화방높이',
+    '개화마디',
+    '착과마디',
+    '열매마디',
+    '수확마디',
+    '개화수',
+    '착과수',
+    '열매수',
+    '수확수',]
     input_data=sys.argv[1]
     file_path=sys.argv[2]
     farm_name=sys.argv[3]
     last_date=sys.argv[4]
     date=sys.argv[5]
-    data=json.loads(input_data)
+    data=json.loads(input_data, object_pairs_hook=OrderedDict)
     keys = data[0].keys()
-    data = [list(item.values()) for item in data] 
+    data = [[d.get(key, None) for key in key_order] for d in data] 
     excel = win32com.client.Dispatch("Excel.Application")
     excel.Visible=True
     num_entity=len(data)
