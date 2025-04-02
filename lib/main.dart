@@ -16,6 +16,7 @@ import 'firebase_options.dart';
 import 'main_screen.dart/auth_rapper.dart';
 import 'package:provider/provider.dart';
 import 'provider.dart' as provider;
+import 'setting.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +28,17 @@ void main() async {
     windowManager.setFullScreen(true);
   }
   await dotenv.load(fileName: '.env');
+  final settings = provider.SettingsProvider();
+  await settings.loadSettings();
   // await extractData('D:/Desktop/farm/farm_data/tomato1.JPG');
 
   runApp( MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => provider.AuthProvider()),
-      ],child:const AgriculturalBigdataApp()));
+        ChangeNotifierProvider(
+      create: (_) => settings,
+    ),
+      ],child:AgriculturalBigdataApp()));
 }
 
 // 클래스 추
@@ -46,7 +52,7 @@ Future<void> initWindows() async {
     size: Size(2400, 1200),
     minimumSize: Size(800, 160),
     center: true,
-    backgroundColor: Color.fromARGB(255, 255, 255, 255),
+    backgroundColor: Color.fromARGB(255, 0, 0, 0),
     titleBarStyle: TitleBarStyle.hidden,
   );
 
@@ -59,27 +65,12 @@ Future<void> initWindows() async {
 }
 
 class AgriculturalBigdataApp extends StatelessWidget {
-  const AgriculturalBigdataApp({super.key});
-
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<provider.SettingsProvider>(context);
     return MaterialApp(
       title: '농업빅데이터조사',
-      theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto', // 원하는 폰트로 변경 가능
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.black87),
-          bodyMedium: TextStyle(color: Colors.black87),
-          bodySmall: TextStyle(color: Colors.black87),
-          titleLarge: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      theme: settings.isDarkMode ? ThemeData.dark() : ThemeData.light(),
       home: const MainScreen(),
     );
   }
@@ -93,11 +84,12 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('농업빅데이터조사'),
-        backgroundColor: Colors.white,
+        
         elevation: 0,
         titleTextStyle: Theme.of(context).textTheme.titleLarge,
         actions: [
@@ -110,11 +102,11 @@ class _MainScreenState extends State<MainScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             color: Colors.grey[700],
-            onPressed: () {
-              // 환경설정 기능 구현
-              print('환경설정 버튼 클릭');
-            },
+            onPressed: () => showDialog(
+                context: context,
+                builder: (context) => const SettingsDialog(),
           ),
+          )
         ],
       ),
       body: Platform.isAndroid

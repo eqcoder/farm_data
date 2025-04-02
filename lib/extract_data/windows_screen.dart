@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:farm_data/crop_config/crop_default.dart';
 import 'package:flutter/material.dart';
+import 'package:googleapis/cloudfunctions/v2.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'gemini.dart';
@@ -18,6 +19,10 @@ import 'package:camera_windows/camera_windows.dart';
 import '../camera/camera.dart';
 import 'dart:convert';
 import 'dart:collection';
+import '../provider.dart' as provider;
+import 'package:provider/provider.dart';
+import 'package:path/path.dart' as path;
+
 class WindowsEnterDataLayout extends StatefulWidget {
 
   _WindowsEnterDataWidgetState createState() => _WindowsEnterDataWidgetState();
@@ -34,7 +39,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   final TextEditingController farmNameController = TextEditingController();
   final TextEditingController cropNameController = TextEditingController();
   final TextEditingController surveyDateController = TextEditingController();
-  
+  final TextEditingController lastSurveyDateController = TextEditingController();
   Future<void> getImage(ImageSource source) async {
   final ImagePicker _picker = ImagePicker();
   final XFile? pickedFile = await _picker.pickImage(source: source);
@@ -99,7 +104,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
 
   
 Future<void> extractImage(BuildContext context) async {
-
+  
   setState(() {
       isLoading = true;
     });
@@ -115,6 +120,7 @@ Future<void> extractImage(BuildContext context) async {
       farmNameController.text=crop!["농가명"];
       cropNameController.text=crop!["작물명"];
       surveyDateController.text=crop!["조사일"];
+      lastSurveyDateController.text=crop!["지난_조사일"];
       isLoading=false;
     });
 
@@ -124,12 +130,49 @@ Future<void> extractImage(BuildContext context) async {
   }
 }
 
-Future<void> writeToExcel() async{
-  print(_data);
-  final pythonScript = 'pepper.py'; // Python 스크립트 경로
-  await Process.run('python', [pythonScript, json.encode(_data),"D:/Desktop/farm_data/25년_파프리카_강원_생육기본_김관섭_1작기.xlsm", farmNameController.text, crop!["지난_조사일"],surveyDateController.text]);
+Future<void> writeToExcel(BuildContext context) async{
+  final String date=surveyDateController.text.replaceAll('-', '');
+  final String lastDate=lastSurveyDateController.text.replaceAll('-', '');
+  final folderPath = Provider.of<provider.SettingsProvider>(context, listen: false).folderPath;
+  final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
+  final member=Provider.of<provider.SettingsProvider>(context, listen: false).groupMembers;
+  final newFolder=path.join(folderPath, "${date}_${group.toString()}조_${member.join('_')}");
+  final lastFolder=path.join(folderPath, "${lastDate}_${group.toString()}조_${member.join('_')}");
+  final newReportDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_주간보고서"));
+  final newImageDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_농가사진"));
+  final newDataDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_생육원본"));
+  final lastDataPath=path.join(lastFolder,  "${lastDate}_${group.toString()}조_생육원본", "${lastDate.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm");
+  final newDirectory=Directory(newFolder);
+  String destinationPath=path.join(newDataDirectory.path, "${date.substring(2,4)}년_${cropNameController.text}생육원본_${farmNameController.text}.xlsm");
+  if (!await newDirectory.exists()) {
+    await newDirectory.create(recursive: false);
+    await newReportDirectory.create(recursive: false);
+    await newImageDirectory.create(recursive: false);
+    await newDataDirectory.create(recursive: false);
+     // 상위 경로도 함께 생성
+    print('폴더가 생성되었습니다: $folderPath');
+  } else {
+    print('폴더가 이미 존재합니다: $folderPath');
+  }
+
+  try {
+    final lastDataFile = File(lastDataPath);
+    final destinationFile=File(destinationPath);
+    // 원본 파일이 존재하는지 확인
+    if (await lastDataFile.exists() & await destinationFile.exists()==false) {
+      // 파일 복사
+      await lastDataFile.copy(destinationPath);
+      print('파일이 복사되었습니다: ${destinationFile.path}');
+    } else {
+      print('원본 파일이 존재하지 않습니다: $lastDataPath');
+    }
+    final pythonScript = 'pepper.py'; // Python 스크립트 경로
+  await Process.run('python', [pythonScript, json.encode(_data),destinationFile.path, farmNameController.text, crop!["지난_조사일"],surveyDateController.text]);
     // Python 스크립트를 실행하고, 데이터 전달
-    
+
+  } catch (e) {
+    print('파일 복사 중 에러 발생: $e');
+  }
 
     // Python에서 반환된 결과
 
@@ -138,6 +181,7 @@ Future<void> writeToExcel() async{
 
 @override
 Widget build(BuildContext context) {
+  final _provider = Provider.of<provider.SettingsProvider>(context, listen: false);
   return Padding(
     padding: const EdgeInsets.all(1.0),
     child: Row(
@@ -282,6 +326,17 @@ Widget build(BuildContext context) {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: lastSurveyDateController,
+                        decoration: const InputDecoration(
+                          labelText: '지난 조사일',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -309,7 +364,7 @@ Widget build(BuildContext context) {
                   children: [
                     ElevatedButton(
                       onPressed: () {
-                        writeToExcel();
+                        writeToExcel(context);
                         print('엑셀에 입력하기 클릭');
                       },
                       child: const Text('엑셀에 입력하기'),
@@ -323,21 +378,6 @@ Widget build(BuildContext context) {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        print('드라이브에 업로드하기 클릭');
-                        backUpRepository.signIn();
-                      },
-                      child: const Text('드라이브에 업로드하기'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[200],
-                        foregroundColor: Colors.black87,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

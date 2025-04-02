@@ -19,7 +19,7 @@ Widget build(BuildContext context) {
         children: [
           Expanded(
             flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
+            child: Container(),
           ),
           Expanded(
             flex: 2,

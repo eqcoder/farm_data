@@ -25,13 +25,14 @@ Widget build(BuildContext context) {
           ),
           Expanded(flex:1,
           child:user!=null?Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Logged in as: ${user.displayName ?? "Unknown"}', style:TextStyle(fontSize:24)),
-                  Text('Email: ${user.email ?? "Unknown"}'),
-                  CircleAvatar(
+                  Expanded(flex:1, child:Text('Logged in as: ${user.displayName ?? "Unknown"}', style:TextStyle(fontSize:24))),
+                  Expanded(flex:1, child:Text('Email: ${user.email ?? "Unknown"}')),
+                  Expanded(flex:1, child:CircleAvatar(
                     backgroundImage: NetworkImage(user.photoURL ?? ""),
-                  ),
+                  ),)
                 ],
               ):Text("로그인을 해주세요"),),
           Expanded(
@@ -39,19 +40,6 @@ Widget build(BuildContext context) {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 5, // 가로 공간의 2/3 차지
-                    child: RoundedButton(text:'출장', onpressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (BuildContext context) => BusinessTripScreen()
-                        ),
-                      );
-                      print('출장버튼 클릭');
-                    }),
-                  ),
                   Spacer(flex: 1),
                   Expanded(
                     flex: 5,
