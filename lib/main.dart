@@ -17,6 +17,7 @@ import 'main_screen.dart/auth_rapper.dart';
 import 'package:provider/provider.dart';
 import 'provider.dart' as provider;
 import 'setting.dart';
+import 'appbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,28 +88,7 @@ class _MainScreenState extends State<MainScreen> {
   
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('농업빅데이터조사'),
-        
-        elevation: 0,
-        titleTextStyle: Theme.of(context).textTheme.titleLarge,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              windowManager.close();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: Colors.grey[700],
-            onPressed: () => showDialog(
-                context: context,
-                builder: (context) => const SettingsDialog(),
-          ),
-          )
-        ],
-      ),
+      appBar: CustomAppBar(title: "농업빅데이터조사"),
       body: Platform.isAndroid
           ? AuthWrapper() // 안드로이드 화면
           : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정

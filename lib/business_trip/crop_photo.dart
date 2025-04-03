@@ -134,6 +134,16 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   required String fileName,
   required File imageFile,
 }) async {
+  final existingFiles = await driveApi.files.list(
+      q: "'$folderId' in parents and name='$fileName'",
+    );
+
+    if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
+      // 기존 파일 삭제 (덮어쓰기)
+      for (var file in existingFiles.files!) {
+        await driveApi.files.delete(file.id!);
+      }
+    }
   final file = drive.File()
     ..name = fileName
     ..parents = [folderId];

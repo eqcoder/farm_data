@@ -6,6 +6,28 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../crop_config/schema.dart';
 import 'dart:collection';
+import 'package:http/http.dart' as http;
+
+
+class LoggingHttpClient extends http.BaseClient {
+  final http.Client _inner;
+
+  LoggingHttpClient(this._inner);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    print('Request: ${request.method} ${request.url}');
+    print('Headers: ${request.headers}');
+    if (request is http.Request) {
+      print('Body: ${request.body}');
+    }
+    
+    final response = await _inner.send(request);
+    print('Response Status Code: ${response.statusCode}');
+    
+    return response;
+  }
+}
 
 Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   await dotenv.load(); // Load environment variables
@@ -15,11 +37,11 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
       'API key is missing. Please set GEMINI_API_KEY in your .env file.',
     );
   }
-
   final model = GenerativeModel(
+    
     model: 'gemini-2.0-flash',
     apiKey: apiKey,
-
+    httpClient: LoggingHttpClient(http.Client()),
     generationConfig: GenerationConfig(
       responseMimeType: 'application/json',
       responseSchema: schema,

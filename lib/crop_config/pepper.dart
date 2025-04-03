@@ -179,7 +179,10 @@ class _PepperWidgetState extends State<PepperWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return ConstrainedBox(
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.of(context).size.height * 0.8, // 화면 높이의 80%로 제한
+    ),
       child:SingleChildScrollView(
         scrollDirection: Axis.vertical, // 가로 스크롤
         child: SingleChildScrollView(
@@ -187,7 +190,6 @@ class _PepperWidgetState extends State<PepperWidget> {
           child: DataTable(
             columnSpacing: 30.0,
             headingRowHeight: 50, // 헤더 높이 고정
-            dataRowHeight: 40,
             columns: _buildColumns(),
             rows: _buildRows(),
           ),

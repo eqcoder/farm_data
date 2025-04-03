@@ -12,6 +12,7 @@ import '../crop_config/schema.dart';
 import 'android_screen.dart';
 import 'windows_screen.dart';
 import 'package:window_manager/window_manager.dart';
+import '../appbar.dart';
 
 class EnterDataScreen extends StatefulWidget {
   const EnterDataScreen({super.key});
@@ -25,34 +26,7 @@ class _EnterDataScreenState extends State<EnterDataScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('야장추출'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleTextStyle: Theme.of(context).textTheme.titleLarge,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              windowManager.close();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: Colors.grey[700],
-            onPressed: () {
-              // 환경설정 기능 구현
-              print('환경설정 버튼 클릭');
-            },
-          ),
-        ],
-      ),
+      appBar: CustomAppBar(title: "야장추출"),
       body: Center(
         child:
             Platform.isAndroid
