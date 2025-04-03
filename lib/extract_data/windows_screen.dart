@@ -22,6 +22,7 @@ import 'dart:collection';
 import '../provider.dart' as provider;
 import 'package:provider/provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:flutter/services.dart';
 
 class WindowsEnterDataLayout extends StatefulWidget {
 
@@ -33,6 +34,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   File? selectedImage;
   Uint8List? editedImage;
   bool isLoading = false;
+  String? _errorMessage;
 
   Map<String, dynamic>? crop;
   List<Map<String, dynamic>>? _data;
@@ -107,7 +109,10 @@ Future<void> extractImage(BuildContext context) async {
   
   setState(() {
       isLoading = true;
+      _errorMessage=null;
+      _data=null;
     });
+    try{
   Uint8List img=await cleanImage(selectedImage!);
   Map<String, dynamic> _crop=await extractData(img);
   if (selectedImage!=null){
@@ -128,9 +133,33 @@ Future<void> extractImage(BuildContext context) async {
       SnackBar(content: Text("작업 완료!")),
     );
   }
+    }
+    catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+}
+
+Future<String> _copyExeToAppDir() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final exeFile = File('${appDir.path}/pepper.exe');
+
+  // 앱 최초 실행 시에만 복사
+  if (!await exeFile.exists()) {
+    final byteData = await rootBundle.load('pepper.exe');
+    await exeFile.writeAsBytes(byteData.buffer.asUint8List());
+  }
+
+  return exeFile.path;
 }
 
 Future<void> writeToExcel(BuildContext context) async{
+  
   final String date=surveyDateController.text.replaceAll('-', '');
   final String lastDate=lastSurveyDateController.text.replaceAll('-', '');
   final folderPath = Provider.of<provider.SettingsProvider>(context, listen: false).folderPath;
@@ -143,7 +172,7 @@ Future<void> writeToExcel(BuildContext context) async{
   final newDataDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_생육원본"));
   final lastDataPath=path.join(lastFolder,  "${lastDate}_${group.toString()}조_생육원본", "${lastDate.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm");
   final newDirectory=Directory(newFolder);
-  String destinationPath=path.join(newDataDirectory.path, "${date.substring(2,4)}년_${cropNameController.text}생육원본_${farmNameController.text}.xlsm");
+  String destinationPath=path.join(newDataDirectory.path, "${date.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm");
   if (!await newDirectory.exists()) {
     await newDirectory.create(recursive: false);
     await newReportDirectory.create(recursive: false);
@@ -166,8 +195,10 @@ Future<void> writeToExcel(BuildContext context) async{
     } else {
       print('원본 파일이 존재하지 않습니다: $lastDataPath');
     }
-    final pythonScript = 'pepper.py'; // Python 스크립트 경로
-  await Process.run('python', [pythonScript, json.encode(_data),destinationFile.path, farmNameController.text, crop!["지난_조사일"],surveyDateController.text]);
+    final exePath = await _copyExeToAppDir();
+
+    final pythonScript = 'pepper.exe'; // Python 스크립트 경로
+  await Process.run(exePath, [json.encode(_data),destinationPath, farmNameController.text,lastSurveyDateController.text,surveyDateController.text], runInShell:true);
     // Python 스크립트를 실행하고, 데이터 전달
 
   } catch (e) {
@@ -351,7 +382,9 @@ Widget build(BuildContext context) {
                   ),
                   child: _data!=null
                   ?PepperWidget(data: _data!)
-                  :isLoading?
+                  :_errorMessage!=null?
+                  Text(_errorMessage!):
+                  isLoading?
                   Center(child:Column(mainAxisAlignment: MainAxisAlignment.center,
               children:[CircularProgressIndicator(),
               SizedBox(height:10), Text("이미지를 추출하는 중...")]))
