@@ -14,6 +14,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   Farm? selectedFarm;
   final _formKey = GlobalKey<FormState>();
   TextEditingController _nameController = TextEditingController();
+  String? _crop;
   TextEditingController _cropController = TextEditingController();
   TextEditingController _addressController = TextEditingController();
   int? selectedIndex;
@@ -23,20 +24,34 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     _loadFarms();
   }
 
+  String _extractCity(String address){
+
+  // 공백으로 문자열 분리
+  List<String> parts = address.split(' ');
+
+  // '군' 또는 '시'로 끝나는 단어 찾기
+  String cityName = parts.firstWhere(
+    (part) => part.endsWith('군') || part.endsWith('시'),
+    orElse: () => '',
+  );
+  return cityName.substring(0, cityName.length - 1);
+;
+}
+
   Future<void> _loadFarms() async {
     farms = await FarmDatabase.instance.getAllFarms();
     setState(() {});
   }
 
   _openFarmDialog({Farm? farm}) {
+    final List<String> crops = ["토마토", "파프리카", "사과", "배추", "콩", "옥수수"];
     if (farm != null) {
       _nameController.text = farm.name;
-      _cropController.text = farm.crop;
+      _crop = farm.crop;
       _addressController.text = farm.address;
       selectedFarm = farm;
     } else {
       _nameController.clear();
-      _cropController.clear();
       _addressController.clear();
       selectedFarm = null;
     }
@@ -56,11 +71,16 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   decoration: InputDecoration(labelText: '농가명'),
                   validator: (value) => value!.isEmpty ? '농가명을 입력하세요' : null,
                 ),
-                TextFormField(
-                  controller: _cropController,
-                  decoration: InputDecoration(labelText: '작물'),
-                  validator: (value) => value!.isEmpty ? '작물을 입력하세요' : null,
-                ),
+                DropdownButtonFormField<String>(
+              value: _crop,
+              decoration: InputDecoration(labelText: "작물명"),
+              items:
+                  crops
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+              onChanged: (value) => setState(() => _crop = value),
+              validator: (value) => value == null ? "작물명을 선택하세요" : null,
+            ),
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(labelText: '주소'),
@@ -93,12 +113,12 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
   _saveFarm() async {
     String name = _nameController.text;
-    String crop = _cropController.text;
+    String crop = _crop!;
     String address = _addressController.text;
-
+    String city= _extractCity(address);
     if (selectedFarm == null) {
       // 새로운 농가 추가
-      Farm newFarm = Farm(name: name, crop: crop, address: address);
+      Farm newFarm = Farm(name: name, crop: crop, address: address, city:city);
       await FarmDatabase.instance.insertFarm(newFarm);
     } else {
       // 기존 농가 수정
@@ -107,6 +127,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
         name: name,
         crop: crop,
         address: address,
+        city:city
       );
       await FarmDatabase.instance.updateFarm(updatedFarm);
     }
