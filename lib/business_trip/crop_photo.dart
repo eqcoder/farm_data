@@ -17,6 +17,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:provider/provider.dart';
+import '../provider.dart' as provider;
+import 'package:saver_gallery/saver_gallery.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 
 final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -45,6 +49,9 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   late CameraDescription _camera;
   late FarmDatabase farm;
   late Database db;
+  late String crop;
+  late String city;
+  
   
   final List<String> imageTitles = [
     "재배전경",
@@ -67,12 +74,22 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   }
   
   Future<void> getPhotos() async {
-    final db = await farm.database;
+    db = await farm.database;
+    List<Map<String, dynamic>> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+  
+  for (var table in tables) {
+    String tableName = table['name'];
+    print('테이블 이름: $tableName');
+    List<Map<String, dynamic>> rows = await db.query(tableName);
+    print('테이블 $tableName 내용: $rows');
+  }
     final maps = await db.query(
     'farms',
     where: 'name = ?',
     whereArgs: [widget.selectedFarm],
   );
+  crop=maps.first['crop'].toString();
+  city=maps.first['city'].toString();
   if(maps.first['survey_photos']!=null){
     List<String?> fileList=List<String?>.from(jsonDecode(maps.first['survey_photos'] as String));
     setState(() {
@@ -86,44 +103,87 @@ class _CropPhotoState extends State<CropPhotoScreen> {
       _isLoading = false; // 초기화 완료 후 로딩 상태 변경
     });
   }
+  Future<File?> _compressImage(File file) async {
+  final targetPath = "${file.parent.path}/compressed_${file.uri.pathSegments.last}";
+
+  // flutter_image_compress를 사용한 압축
+  XFile? result = await FlutterImageCompress.compressAndGetFile(
+    file.absolute.path,
+    targetPath,
+    quality: 95, // 품질 설정 (0-100)
+    minWidth: 720, // 최소 너비 설정
+    minHeight: 1080, // 최소 높이 설정
+  );
+
+  if (result != null) {
+    return File(result.path); // XFile을 File로 변환하여 반환
+  }
+  return null; // 압축 실패 시 null 반환
+}
+
   Future<void> _takePhoto(int index) async {
   final ImagePicker _picker = ImagePicker();
   final XFile? pickedFile = await _picker.pickImage(source:ImageSource.camera);
+  
+
+      // 이미지 압축
+      
   if (pickedFile != null) {
+    File? originalImage = File(pickedFile!.path);
+    File? compressedImage = await _compressImage(originalImage);
     setState(() {
-      _photos[index]=File(pickedFile.path);
+      
+      _photos[index]=File(compressedImage!.path);
     });
   }
+    // 갤러리 기본 경로 가져오기
+    Directory? externalStorageDirectory = await getExternalStorageDirectory();
+    if (externalStorageDirectory == null) {
+      print("외부 저장소 경로를 찾을 수 없습니다.");
+      return;
+    }
+
+
+    // "3조" 폴더 생성 또는 가져오기
+    
+
   if (_photos[index] != null) {
-      await ImageGallerySaver.saveImage(_photos[index]!.readAsBytesSync(), name:'${today}_${imageTitles[index]}');
+    final saveFolder = Directory('${externalStorageDirectory.path}/${today}_${city}_${widget.selectedFarm}');
+    if (!saveFolder.existsSync()) {
+      saveFolder.createSync();
+      print('"3조" 폴더가 생성되었습니다.');
+    }
+    final imagePath = File('${saveFolder.path}/${today}_${imageTitles[index]}');
+    imagePath.writeAsBytesSync(_photos[index]!.readAsBytesSync());
+        final result = await SaverGallery.saveImage(
+          _photos[index]!.readAsBytesSync(),
+          quality: 95, // 이미지 품질 (JPEG만 해당)
+          fileName: '${today}_${city}_${widget.selectedFarm}_${imageTitles[index]}.jpg', // 파일 이름
+          androidRelativePath: "Pictures/${today}_${city}_${widget.selectedFarm}/", // 갤러리 내 폴더 경로
+          skipIfExists: false
+        );
   farm.updateSurveyPhotos(widget.selectedFarm, _photos.map((file){return  file?.path;}).toList());
   }
   }
   
-  Future<String> createTodayFolder(drive.DriveApi driveApi) async {
-    final today = DateFormat('yyyyMMdd').format(DateTime.now()); // YYYY-MM-DD
-    final query = "mimeType = 'application/vnd.google-apps.folder' and name = '$today'";
-    final fileList = await driveApi.files.list(q: query, spaces: 'drive');
-    if (fileList.files != null && fileList.files!.isNotEmpty) {
-      final folderId = fileList.files!.first.id;
-      if (folderId != null) {
-        return folderId; // ID
-    }
-    else {
-        throw Exception('폴더 ID가 null입니다.');
-      }
-    }
-  
-  final folder = drive.File()
-    ..name = today
-    ..mimeType = 'application/vnd.google-apps.folder';
+  Future<String> createFolder(drive.DriveApi driveApi, String name, String? parentId) async {
+    
+    final query = parentId != null 
+      ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
+      : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
+    final response = await driveApi.files.list(q: query);
 
-  final response = await driveApi.files.create(folder);
-  if (response.id!=null){
-  return response.id!;}
-  else {
-        throw Exception('폴더 ID가 null입니다.');
-      }
+    if (response.files?.isNotEmpty ?? false) {
+      return response.files!.first.id!;
+    } else {
+      final folderMetadata = drive.File()
+        ..name = name
+        ..mimeType = "application/vnd.google-apps.folder"
+        ..parents = parentId != null ? [parentId] : null;
+
+      final folder = await driveApi.files.create(folderMetadata);
+      return folder.id!;
+    }
   }
   
 
@@ -192,13 +252,16 @@ Future<void> uploadToGoogleDrive(BuildContext context) async {
       },
     );
     // 3. 오늘 날짜 폴더 생성
-    final folderId = await createTodayFolder(driveApi);
+    final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
+    final rootFolderId = await createFolder(driveApi, "$group조", null);
+    final imageFolderId = await createFolder(driveApi, "$group조_생육사진", rootFolderId);
+    final farmImageFolderId = await createFolder(driveApi, "${today}_${city}_${widget.selectedFarm}", imageFolderId);
 
     // 4. 사진 업로드
     for(var i=0;i<_photos.length;i++){
       if(_photos[i]!=null){
         
-        uploadPhotoToDrive(driveApi: driveApi, folderId: folderId, fileName: '${today}_${imageTitles[i]}', imageFile: _photos[i]!);
+        uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
       }
     }
 
@@ -225,22 +288,47 @@ _deleteImages(){
       appBar: AppBar(title: Text("조사사진 업로드")),
       body: _isLoading?Column(mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
             crossAxisAlignment: CrossAxisAlignment.center,children:[Center(
-        child: CircularProgressIndicator()), Text("지난 데이터를 불러오는 중입니다..")]):Column(
+        child: CircularProgressIndicator()), Text("지난 데이터를 불러오는 중입니다..")])
+        :Column(
         children: [
           Spacer(flex:1),
-Expanded(flex:1, child:Text("농가 : ${widget.selectedFarm}", style:TextStyle(fontSize:24)))
-          ,
+Container(
+  margin: EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),child:Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildInfoItem("농가명", widget.selectedFarm),
+                _buildInfoItem("지역", city),
+                _buildInfoItem("작물", crop),
+              ],
+            ),),
+          Spacer(flex:1),
           Expanded(
             flex:20,
           child:GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             shrinkWrap: true,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, // 3개의 열
-        crossAxisSpacing: 10, // 열 간격
-        mainAxisSpacing: 50, // 행 
+        crossAxisSpacing: 20, // 열 간격
+        mainAxisSpacing: 20, // 행 
+        childAspectRatio: 0.6,
               ),
               itemCount: 9,
               itemBuilder: (context, index) {
+                
                 return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [Expanded(flex:5, child:Stack(
@@ -248,27 +336,26 @@ Expanded(flex:1, child:Text("농가 : ${widget.selectedFarm}", style:TextStyle(f
                       children: [
                         Container(
           width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.width /3+200,
+          height: MediaQuery.of(context).size.width /3+100,
           decoration: BoxDecoration(
             color: Colors.grey[300], // 기본 배경색
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(10),
                     image:  _photos[index] != null
                           ? DecorationImage(
                     image: FileImage(_photos[index]!),
                     fit: BoxFit.cover,
                           ):null,
                           ),
-                child: _photos[index] == null
-              ? Icon(Icons.image, size: 50, color: Colors.grey[700]) // 기본 아이콘
-              : null,
+                
         ),Positioned(
           child: IconButton(
-            iconSize: 50,
-            icon: Icon(Icons.camera_alt, color: Colors.white),
+            iconSize: 40,
+            icon: Icon(Icons.camera_alt, color: const Color.fromARGB(255, 9, 109, 39)),
             onPressed:(){_takePhoto(index);}, // 사진 선택 함수 호출
           ),
         ),
                     ])),
+                    SizedBox(height:5),
                       Expanded(flex:1,child:// 🔹 사진 파일명 or 기본 제목 표시
                       Text(
                         imageTitles[index],
@@ -283,12 +370,36 @@ Expanded(flex:1, child:Text("농가 : ${widget.selectedFarm}", style:TextStyle(f
                 Spacer(flex:1),
               Expanded(flex:5, child:ElevatedButton(onPressed: (){_deleteImages();
           }, child: Text("모두지우기")),),Spacer(flex:1),
-          Expanded(flex:5, child:ElevatedButton(onPressed: (){uploadToGoogleDrive(context);
-          }, child: Text("저장하기")),),Spacer(flex:1),
+          
           Expanded(flex:5, child:ElevatedButton(onPressed: (){uploadToGoogleDrive(context);
           }, child: Text("드라이브에 올리기")),),Spacer(flex:1)])),
         Spacer(flex:1)],
       ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(width: 20),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+      ],
     );
   }
 }
