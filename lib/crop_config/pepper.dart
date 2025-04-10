@@ -9,10 +9,10 @@ final Schema schema = Schema.object(
       items: Schema.object(
         nullable: false,
         properties: {
-          '개체': Schema.integer(nullable: false),
-          '줄기번호': Schema.integer(nullable: false),
-          '생장길이': Schema.number(nullable: false),
-          '엽수': Schema.integer(nullable: false),
+          '개체': Schema.integer(nullable: false, description: 'column1'),
+          '줄기번호': Schema.integer(nullable: false, description: 'column2'),
+          '생장길이': Schema.number(nullable: false, description: 'column3'),
+          '엽수': Schema.integer(nullable: false, description: 'column4'),
           '엽장': Schema.number(nullable: false),
           '엽폭': Schema.number(nullable: false),
           '줄기굵기': Schema.number(nullable: false),
