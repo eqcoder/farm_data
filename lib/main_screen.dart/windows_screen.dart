@@ -10,127 +10,134 @@ import 'dart:io';
 import '../business_trip/business_trip_screen.dart';
 import '../farm_info/farm_info_screen.dart';
 import 'form.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import '../business_trip/opinet.dart';
+import '../home/home_screen.dart';
+import '../setting.dart';
 
 
-class WindowsMainScreen extends StatelessWidget {
-
+class WindowsScreen extends StatelessWidget {
+  const WindowsScreen({super.key});
 Widget build(BuildContext context) {
-    return Column(
+    return MaterialApp(
+      title: '스마트농업데이터조사',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const WindowsMainScreen(),
+    );
+  }
+}
+
+class WindowsMainScreen extends StatefulWidget {
+  const WindowsMainScreen({super.key});
+
+  @override
+  State<WindowsMainScreen> createState() => _WindowsMainScreenState();
+}
+
+class _WindowsMainScreenState extends State<WindowsMainScreen> {
+int _selectedIndex = 0;
+Widget build(BuildContext context) {
+  List<Widget> _screens = [
+    WindowsHomeScreen(), EnterDataScreen(), FarmInfoScreen(),Opinet(), // 각 화면을 리스트로 관리
+  ];
+  
+    return Scaffold(
+      appBar: PreferredSize(
+          preferredSize: Size.fromHeight(30.0),child:AppBar(
+        backgroundColor: const Color.fromARGB(255, 3, 77, 40),
+        title: const Text(''),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              windowManager.close();
+            },
+          ),
+        ],
+      ),),
+      body: Row(
         children: [
-          Expanded(
-            flex: 4,
-            child: Container(),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Spacer(flex: 2),
-                  Expanded(
-                    flex: 7, // 가로 공간의 2/3 차지
-                    child: RoundedButton(text:'출장', onpressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (BuildContext context) => BusinessTripScreen()
-                        ),
-                      );
-                      print('출장버튼 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 7,
-                    child: RoundedButton(text: '야장추출', onpressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => EnterDataScreen(),
-                        ),
-                      );
-                      print('데이터 입력 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 7,
-                    child: RoundedButton(text: '농가정보', onpressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => FarmInfoScreen(),
-                        ),
-                      );
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 1),
-                  Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed: () {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                  Spacer(flex: 2),
-                ],
-              ),
-            ),
-          ),
-          Spacer(flex:1),
-          Expanded(
-            flex: 2,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+          // 좌측 드로어 (고정 너비)
+          Container(
+            width: 240,
+            color: Colors.grey[200],
+            child: Column(
               children: [
-                Spacer(flex: 2),
+                // 드로어 상단
+
+                // 드로어 항목 리스트
                 Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                Spacer(flex: 1),
-                Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                Spacer(flex: 1),
-                Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                Spacer(flex: 1),
-                Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                Spacer(flex: 1),
-                Expanded(
-                    flex: 7,
-                    child: RoundedButton(text:'버튼 2', onpressed:() {
-                      print('버튼 2 클릭');
-                    }),
-                  ),
-                Spacer(flex: 2),
+                  child:ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const DrawerHeader(
+                  decoration: BoxDecoration(color: Color.fromARGB(255, 9, 112, 60)),
+                  child: Center(child:Text('스마트농업데이터', style: TextStyle(color: Colors.white, fontSize: 24))),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: const Text('홈'),
+                  selected: _selectedIndex == 0,
+                  onTap: () => _updateScreen(0),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.query_stats),
+                  title: const Text('야장추출'),
+                  selected: _selectedIndex == 1,
+                  onTap: () => _updateScreen(1),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.manage_search),
+                  title: const Text('농가정보'),
+                  selected: _selectedIndex == 2,
+                  onTap: () => _updateScreen(2),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.payments),
+                  title: const Text('여비운임비'),
+                  selected: _selectedIndex == 2,
+                  onTap: () => _updateScreen(3),
+                ),
               ],
             ),
           ),
-          Spacer(flex:4)
+          Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: InkWell(
+                    onTap: () {
+                      // 환경설정 클릭 시 동작
+                      showDialog(
+                        context: context,
+                        builder: (context) => SettingsDialog(),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Icon(Icons.settings, color: Colors.grey),
+                        const Text('환경설정',
+                            style:
+                                TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+          )])),
+          
+
+          // 우측 콘텐츠 영역
+          Expanded(
+            child: _screens[_selectedIndex],
+          ),
         ],
-      );}}
+      ),
+    );
+  }
+
+  // 화면 업데이트 메서드
+  void _updateScreen(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+}

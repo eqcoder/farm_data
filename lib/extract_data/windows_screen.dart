@@ -11,7 +11,6 @@ import 'dart:typed_data';
 import '../crop_config/schema.dart';
 import '../crop_config/tomato.dart';
 import '../crop_config/pepper.dart';
-import 'enter_data.dart';
 import '../gdrive/gdrive.dart';
 import 'package:excel/excel.dart' as excel;
 import 'package:path_provider/path_provider.dart';
@@ -82,7 +81,9 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   @override
   void dispose() {
     super.dispose();
-    _controller!.dispose(); // 카메라 컨트롤러 리소스 해제
+    if(_controller!=null){
+    _controller!.dispose();
+     } // 카메라 컨트롤러 리소스 해제
   }
 
   Future<void> _takePicture() async {

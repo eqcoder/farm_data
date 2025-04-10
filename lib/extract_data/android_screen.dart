@@ -10,7 +10,6 @@ import 'clean_image.dart';
 import '../crop_config/schema.dart';
 import '../crop_config/tomato.dart';
 import '../crop_config/pepper.dart';
-import 'enter_data.dart';
 import 'gemini.dart';
 import 'dart:convert';
 import 'package:gallery_saver_plus/gallery_saver.dart';

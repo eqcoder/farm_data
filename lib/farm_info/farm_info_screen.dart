@@ -34,12 +34,16 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     (part) => part.endsWith('군') || part.endsWith('시'),
     orElse: () => '',
   );
-  return cityName.substring(0, cityName.length - 1);
-;
+  if (cityName.isEmpty) {
+    return ""; // '군' 또는 '시'가 없으면 원래 주소 반환
+  }
+  else{
+  return cityName.substring(0, cityName.length - 1);}
 }
 
   Future<void> _loadFarms() async {
     farms = await FarmDatabase.instance.getAllFarms();
+    if(mounted){}
     setState(() {});
   }
 
