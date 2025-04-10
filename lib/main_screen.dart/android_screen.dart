@@ -21,25 +21,41 @@ Widget build(BuildContext context) {
         children: [
           Expanded(
             flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
+            child: Container(),
           ),
           Expanded(flex:1,
-          child:user!=null?Column(
+          child:user!=null?Expanded(flex:1, child:Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(flex:1, child:Text('Logged in as: ${user.displayName ?? "Unknown"}', style:TextStyle(fontSize:24))),
-                  Expanded(flex:1, child:Text('Email: ${user.email ?? "Unknown"}')),
-                  Expanded(flex:1, child:CircleAvatar(
+                  Spacer(flex:1),
+                  Expanded(flex:3, child:Text('Logged in as: ${user.displayName ?? "Unknown"}', style:TextStyle(fontSize:24))),
+                  Spacer(flex:1),
+                  Expanded(flex:3, child:Text('Email: ${user.email ?? "Unknown"}')),
+                  Spacer(flex:1),
+                  Expanded(flex:3, child:CircleAvatar(
                     backgroundImage: NetworkImage(user.photoURL ?? ""),
-                  ),)
+                  ),),
+                  Spacer(flex:1),
                 ],
-              ):Text("로그인을 해주세요"),),
+              )):Text("로그인을 해주세요"),),
           Expanded(
             flex: 2,child:Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Spacer(flex: 1),
+                  Expanded(
+                    flex: 5,
+                    child: RoundedButton(text: '출장', onpressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (BuildContext context) => BusinessTripScreen(),
+                        ),
+                      );
+                      print('데이터 입력 클릭');
+                    }),
+                  ),
                   Spacer(flex: 1),
                   Expanded(
                     flex: 5,
@@ -106,7 +122,7 @@ Widget build(BuildContext context) {
                   Spacer(flex:1),
           Expanded(
             flex: 4,
-            child: Container(color: const Color.fromARGB(255, 255, 255, 255)),
+            child: Container(),
           ),
         ],
       );}}
