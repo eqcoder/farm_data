@@ -158,6 +158,24 @@ Future<String> _copyExeToAppDir() async {
   return exeFile.path;
 }
 
+void showFileMissingDialog(BuildContext context, String fileName, String folderName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('파일 없음'),
+          content: Text('$fileName을 $folderName에 추가해주세요.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 Future<void> writeToExcel(BuildContext context) async{
   
   final String date=surveyDateController.text.replaceAll('-', '');
@@ -165,42 +183,43 @@ Future<void> writeToExcel(BuildContext context) async{
   final folderPath = Provider.of<provider.SettingsProvider>(context, listen: false).folderPath;
   final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
   final member=Provider.of<provider.SettingsProvider>(context, listen: false).groupMembers;
-  final newFolder=path.join(folderPath, "${date}_${group.toString()}조_${member.join('_')}");
   final lastFolder=path.join(folderPath, "${lastDate}_${group.toString()}조_${member.join('_')}");
-  final newReportDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_주간보고서"));
-  final newImageDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_농가사진"));
-  final newDataDirectory=Directory(path.join(newFolder,  "${date}_${group.toString()}조_생육원본"));
-  final lastDataPath=path.join(lastFolder,  "${lastDate}_${group.toString()}조_생육원본", "${lastDate.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm");
-  final newDirectory=Directory(newFolder);
-  String destinationPath=path.join(newDataDirectory.path, "${date.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm");
-  if (!await newDirectory.exists()) {
-    await newDirectory.create(recursive: false);
+  final newReportDirectory=Directory(path.join(folderPath, "${group.toString()}조_주간보고서"));
+  final newImageDirectory=Directory(path.join(folderPath, "${group.toString()}조_생육사진"));
+  final newDataDirectory=Directory(path.join(folderPath,"${date}_${group.toString()}조_생육원본"));
+  final fileName = "${date.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm";
+  final folderName="${group.toString()}조_생육원본";
+  final lastDataPath=path.join(folderPath, folderName, fileName);
+  String destinationPath=path.join(folderPath, folderName, fileName);
+  if (!await newReportDirectory.exists()) {
     await newReportDirectory.create(recursive: false);
-    await newImageDirectory.create(recursive: false);
-    await newDataDirectory.create(recursive: false);
-     // 상위 경로도 함께 생성
-    print('폴더가 생성되었습니다: $folderPath');
-  } else {
-    print('폴더가 이미 존재합니다: $folderPath');
   }
-
+  if (!await newImageDirectory.exists()) {
+    await newImageDirectory.create(recursive: false);
+  }
+  if (!await newDataDirectory.exists()) {
+    await newDataDirectory.create(recursive: false);
+  }
+     // 상위 경로도 함께 생
   try {
     final lastDataFile = File(lastDataPath);
     final destinationFile=File(destinationPath);
     // 원본 파일이 존재하는지 확인
-    if (await lastDataFile.exists() & await destinationFile.exists()==false) {
+    if (await destinationFile.exists()==false) {
+      showFileMissingDialog(context, fileName, folderName);
       // 파일 복사
-      await lastDataFile.copy(destinationPath);
+      // await lastDataFile.copy(destinationPath);
       print('파일이 복사되었습니다: ${destinationFile.path}');
     } else {
-      print('원본 파일이 존재하지 않습니다: $lastDataPath');
-    }
-    final exePath = await _copyExeToAppDir();
+      final exePath = await _copyExeToAppDir();
 
     final pythonScript = 'pepper.exe'; // Python 스크립트 경로
   await Process.run(exePath, [json.encode(_data),destinationPath, farmNameController.text,lastSurveyDateController.text,surveyDateController.text], runInShell:true);
     // Python 스크립트를 실행하고, 데이터 전달
 
+      print('원본 파일이 존재하지 않습니다: $lastDataPath');
+    }
+    
   } catch (e) {
     print('파일 복사 중 에러 발생: $e');
   }
@@ -388,7 +407,7 @@ Widget build(BuildContext context) {
                   Center(child:Column(mainAxisAlignment: MainAxisAlignment.center,
               children:[CircularProgressIndicator(),
               SizedBox(height:10), Text("이미지를 추출하는 중...")]))
-                  :Center(child:Text("야장추출 버튼을 클릭하세요"))
+                  :Center(child:Text("야장추출 버튼을 다시 클릭하세요"))
                 )),
               Expanded(
                 flex: 2,

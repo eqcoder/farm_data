@@ -9,26 +9,6 @@ import 'dart:collection';
 import 'package:http/http.dart' as http;
 
 
-class LoggingHttpClient extends http.BaseClient {
-  final http.Client _inner;
-
-  LoggingHttpClient(this._inner);
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    print('Request: ${request.method} ${request.url}');
-    print('Headers: ${request.headers}');
-    if (request is http.Request) {
-      print('Body: ${request.body}');
-    }
-    
-    final response = await _inner.send(request);
-    print('Response Status Code: ${response.statusCode}');
-    
-    return response;
-  }
-}
-
 Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   await dotenv.load(); // Load environment variables
   final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; // Fetch API key
@@ -41,7 +21,6 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
     
     model: 'gemini-2.0-flash',
     apiKey: apiKey,
-    httpClient: LoggingHttpClient(http.Client()),
     generationConfig: GenerationConfig(
       responseMimeType: 'application/json',
       responseSchema: schema,
@@ -53,7 +32,7 @@ Future<Map<String, dynamic>> extractData(Uint8List imageBytes) async {
   final response = await model.generateContent([
     Content.multi([
       TextPart(prompt), // 텍스트 추출을 명시하는 프롬프트
-      DataPart('image/jpeg', imageBytes),
+      DataPart('image/jpg', imageBytes),
     ]),
   ]);
   print(response.text!);

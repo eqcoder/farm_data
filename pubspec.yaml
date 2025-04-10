@@ -60,8 +60,15 @@ dependencies:
   path_provider: ^2.1.2
   flutter_staggered_grid_view: ^0.7.0
   image_gallery_saver: ^2.0.3
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
     
-
+flutter_native_splash:
+  color: "#ffffff" # 배경색 (Hex 코드)
+  image: Icon/icon.jpg # 스플래시 이미지 경로
+  android: true # Android 지원 활성화
+  ios: true # iOS 지원 활성화
+  web: true # 웹 지원 비활성화
   
 
 dev_dependencies:
@@ -77,11 +84,13 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   msix: ^3.16.8
-  flutter_launcher_icons: "0.14.3"
 flutter_icons:
   android: true
   ios: true
-  image_path: "Icon/farm.ico"
+  image_path: "Icon/icon.jpg"
+  windows:
+    generate: true
+    image_path: "Icon/icon.jpg"
 msix_config:
   display_name: TEST
   publisher_display_name: TEST

@@ -5,7 +5,7 @@ sys.path.append(script_dir)
 from typing import Literal
 import json
 import win32com.client
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 
@@ -45,6 +45,8 @@ if __name__ =="__main__":
     ws=workbook.Sheets("생육조사")
     wsYajang=workbook.Sheets("야장")
     wsYajang.Range("C2").Value=date
+    next_date=datetime.strptime(date, "%Y-%m-%d")+timedelta(days=7).strftime("%Y-%m-%d")
+    wsYajang.Range("F2").Value=next_date
     used_range = ws.UsedRange  # 사용된 범위 가져오기
     rows = used_range.Rows.Count
     data = transpose(data)
