@@ -12,8 +12,9 @@ class Farm {
   final String name;
   final String crop;
   final String address;
+  final String? city;
 
-  Farm({this.id, required this.name, required this.crop, required this.address});
+  Farm({this.id, required this.name, required this.crop, required this.address, required this.city});
 
   
   // 농가 데이터를 Map 형태로 변환
@@ -23,6 +24,7 @@ class Farm {
       'name': name,
       'crop': crop,
       'address': address,
+      'city': city,
     };
   }
 
@@ -33,6 +35,7 @@ class Farm {
       name: map['name'],
       crop: map['crop'],
       address: map['address'],
+      city: map['city']
     );
   }
 }
@@ -55,21 +58,42 @@ class FarmDatabase {
     
     return await openDatabase(
       fullpath,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE farms (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             crop TEXT,
-            address TEXT
+            address TEXT,
             survey_photos TEXT
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion < 2) {
+        await db.execute('ALTER TABLE farms ADD COLUMN survey_photos TEXT');
+        await db.execute('ALTER TABLE farms ADD COLUMN city TEXT');
+      }
+    },
     );
   }
+  Future<Farm?> getFarmByName(String farmName) async {
+    final db = await FarmDatabase.instance.database;
 
+    // 쿼리 실행
+    final List<Map<String, dynamic>> result = await db.query(
+      'farms',
+      where: 'name = ?',
+      whereArgs: [farmName],
+    );
+
+    if (result.isNotEmpty) {
+      return Farm.fromMap(result.first);
+    } else {
+      return null; // 데이터가 없을 경우 null 반환
+    }
+  }
 
   Future<List<String>> getFarmNames() async {
     final db = await instance.database;

@@ -60,8 +60,13 @@ dependencies:
   path_provider: ^2.1.2
   flutter_staggered_grid_view: ^0.7.0
   image_gallery_saver: ^2.0.3
+<<<<<<< HEAD
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.4
+=======
+  saver_gallery: ^4.0.1
+  flutter_image_compress: ^2.4.0
+>>>>>>> 2d72ee2827b48b4b3f47b98e79427b0ae4fef14c
     
 flutter_native_splash:
   color: "#ffffff" # 배경색 (Hex 코드)
