@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class Farm {
   final int? id;
@@ -48,6 +49,7 @@ class FarmDatabase {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
+    
     _database = await _initDB('farm_data.db');
     return _database!;
   }
@@ -58,7 +60,7 @@ class FarmDatabase {
     
     return await openDatabase(
       fullpath,
-      version: 2,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE farms (
@@ -66,13 +68,14 @@ class FarmDatabase {
             name TEXT,
             crop TEXT,
             address TEXT,
-            survey_photos TEXT
+            survey_photos TEXT,
+            city TEXT
           )
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-      if (oldVersion < 2) {
-        await db.execute('ALTER TABLE farms ADD COLUMN survey_photos TEXT');
+      if (oldVersion < 4) {
+        
         await db.execute('ALTER TABLE farms ADD COLUMN city TEXT');
       }
     },

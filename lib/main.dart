@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'provider.dart' as provider;
 import 'setting.dart';
 import 'appbar.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,10 @@ void main() async {
     await windowManager.ensureInitialized();
     initWindows();
     windowManager.setFullScreen(true);
+    sqfliteFfiInit();
+
+  // global databaseFactory를 FFI 구현으로 설정
+  databaseFactory = databaseFactoryFfi;
   }
   await dotenv.load(fileName: '.env');
   final settings = provider.SettingsProvider();
@@ -72,7 +77,7 @@ class AgriculturalBigdataApp extends StatelessWidget {
     return MaterialApp(
       title: '농업빅데이터조사',
       theme: settings.isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      home: const MainScreen(),
+      home: Platform.isAndroid?AuthWrapper():WindowsMainScreen()
     );
   }
 }
@@ -88,7 +93,6 @@ class _MainScreenState extends State<MainScreen> {
   
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: "농업빅데이터조사"),
       body: Platform.isAndroid
           ? AuthWrapper() // 안드로이드 화면
           : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정

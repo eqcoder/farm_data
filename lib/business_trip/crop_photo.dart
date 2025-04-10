@@ -148,7 +148,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     
 
   if (_photos[index] != null) {
-    final saveFolder = Directory('${externalStorageDirectory.path}/${today}_${city}_${widget.selectedFarm}');
+    final saveFolder = Directory('${externalStorageDirectory.path}/${today}_${crop}_${city}_${widget.selectedFarm}');
     if (!saveFolder.existsSync()) {
       saveFolder.createSync();
       print('"3조" 폴더가 생성되었습니다.');
@@ -255,13 +255,13 @@ Future<void> uploadToGoogleDrive(BuildContext context) async {
     final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
     final rootFolderId = await createFolder(driveApi, "$group조", null);
     final imageFolderId = await createFolder(driveApi, "$group조_생육사진", rootFolderId);
-    final farmImageFolderId = await createFolder(driveApi, "${today}_${city}_${widget.selectedFarm}", imageFolderId);
+    final farmImageFolderId = await createFolder(driveApi, "${today}_${crop}_${city}_${widget.selectedFarm}", imageFolderId);
 
     // 4. 사진 업로드
     for(var i=0;i<_photos.length;i++){
       if(_photos[i]!=null){
         
-        uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
+        uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${crop}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
       }
     }
 
