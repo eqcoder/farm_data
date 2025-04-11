@@ -22,6 +22,7 @@ import '../provider.dart' as provider;
 import 'package:provider/provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/services.dart';
+import 'package:io/io.dart' show copyPath;
 
 class WindowsEnterDataLayout extends StatefulWidget {
 
@@ -34,7 +35,7 @@ class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
   Uint8List? editedImage;
   bool isLoading = false;
   String? _errorMessage;
-
+  late int group;
   Map<String, dynamic>? crop;
   List<Map<String, dynamic>>? _data;
   final TextEditingController farmNameController = TextEditingController();
@@ -159,13 +160,13 @@ Future<String> _copyExeToAppDir() async {
   return exeFile.path;
 }
 
-void showFileMissingDialog(BuildContext context, String fileName, String folderName) {
+void showMissingDialog(BuildContext context, String title, String contents) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('파일 없음'),
-          content: Text('$fileName을 $folderName에 추가해주세요.'),
+          title: Text(title),
+          content: Text(contents),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -178,36 +179,43 @@ void showFileMissingDialog(BuildContext context, String fileName, String folderN
   }
 
 Future<void> writeToExcel(BuildContext context) async{
-  
+  if (_data==null) {
+      showMissingDialog(context, "야장추출필요", "야장추출버튼을 클릭해주세요!");
+      return;
+      }
   final String date=surveyDateController.text.replaceAll('-', '');
   final String lastDate=lastSurveyDateController.text.replaceAll('-', '');
-  final folderPath = Provider.of<provider.SettingsProvider>(context, listen: false).folderPath;
-  final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
+  final folderPath = Provider.of<provider.SettingsProvider>(context, listen: false).originfolderPath;
+  if (folderPath.isEmpty) {
+      showMissingDialog(context, "경로설정필요", "환경설정에서 N조파일의 경로를 설정해주세요!");
+      return;
+      }
+  
   final member=Provider.of<provider.SettingsProvider>(context, listen: false).groupMembers;
-  final lastFolder=path.join(folderPath, "${lastDate}_${group.toString()}조_${member.join('_')}");
-  final newReportDirectory=Directory(path.join(folderPath, "${group.toString()}조_주간보고서"));
-  final newImageDirectory=Directory(path.join(folderPath, "${group.toString()}조_생육사진"));
-  final newDataDirectory=Directory(path.join(folderPath,"${date}_${group.toString()}조_생육원본"));
+  //final lastFolder=path.join(folderPath, "${lastDate}_${group.toString()}조_${member.join('_')}");
+  final reportDirectory=Directory(path.join(folderPath, "${group.toString()}조_주간보고서"));
+  final imageDirectory=Directory(path.join(folderPath, "${group.toString()}조_생육사진"));
+  final dataDirectory=Directory(path.join(folderPath,"${date}_${group.toString()}조_생육원본"));
   final fileName = "${date.substring(2,4)}년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm";
   final folderName="${group.toString()}조_생육원본";
   final lastDataPath=path.join(folderPath, folderName, fileName);
   String destinationPath=path.join(folderPath, folderName, fileName);
-  if (!await newReportDirectory.exists()) {
-    await newReportDirectory.create(recursive: false);
+  if (!await reportDirectory.exists()) {
+    await reportDirectory.create(recursive: false);
   }
-  if (!await newImageDirectory.exists()) {
-    await newImageDirectory.create(recursive: false);
+  if (!await imageDirectory.exists()) {
+    await imageDirectory.create(recursive: false);
   }
-  if (!await newDataDirectory.exists()) {
-    await newDataDirectory.create(recursive: false);
+  if (!await dataDirectory.exists()) {
+    await dataDirectory.create(recursive: false);
   }
-     // 상위 경로도 함께 생
+     // 상위 경로도 함께 생성
   try {
-    final lastDataFile = File(lastDataPath);
     final destinationFile=File(destinationPath);
     // 원본 파일이 존재하는지 확인
     if (await destinationFile.exists()==false) {
-      showFileMissingDialog(context, fileName, folderName);
+      showMissingDialog(context, "파일없음", "${fileName}파일을 ${folderName}에 추가해주세요");
+      return;
       // 파일 복사
       // await lastDataFile.copy(destinationPath);
       print('파일이 복사되었습니다: ${destinationFile.path}');
@@ -229,10 +237,72 @@ Future<void> writeToExcel(BuildContext context) async{
 
 }
 
+Future<void> copyFile() async{
+  final customfolderPath = Provider.of<provider.SettingsProvider>(context, listen: false).customfolderPath;
+  if (customfolderPath.isEmpty) {
+      showMissingDialog(context, "경로설정필요", "환경설정에서 데이터파일의 경로를 설정해주세요!");
+      return;
+      }
+  final originfolderPath = Provider.of<provider.SettingsProvider>(context, listen: false).originfolderPath;
+  if (originfolderPath.isEmpty) {
+      showMissingDialog(context, "경로설정필요", "환경설정에서 데이터파일의 경로를 설정해주세요!");
+      return;
+      }
+  List<String> folderNames=["생육사진", "생육원본", "주간보고서"];
+  for (String folderName in folderNames){
+    Directory directory=Directory(path.join(originfolderPath, "${group}조_${folderName}"));
+    if (!await directory.exists()) {
+      showMissingDialog(context, "폴더없음", "${directory} 폴더가 존재하지 않습니다.");
+      return;
+    }
+    var entities = directory.listSync(recursive: false);
+    for (var entity in entities) {
+        final pathName = path.basename(entity.path);
+        final farmName=path.basenameWithoutExtension(entity.path).split('_').last;
+        final destinationPath = path.join(customfolderPath, farmName, folderName);
+        final destinationDir=Directory(destinationPath);
+        if (!await destinationDir.exists()) {
+        await destinationDir.create(recursive: true);
+        }
+         // 대상 경로가 없으면 생성
+         if (entity is File) {
+        final newFile = File(path.join(destinationPath, pathName));
+        await entity.copy(newFile.path);
+      } else if (entity is Directory) {
+        await copyPath(entity.path, path.join(destinationPath, pathName));
+      }
+    }
+  }
+  final directory=Directory(path.join(originfolderPath, "${group}조_출장복명서"));
+    if (!await directory.exists()) {
+      showMissingDialog(context, "폴더없음", "${directory} 폴더가 존재하지 않습니다.");
+      return;
+    }
+    final entities = directory.listSync(recursive: false);
+    for (var entity in entities) {
+        final pathName = path.basename(entity.path);
+        final destinationPath = path.join(customfolderPath, "출장복명서");
+        final destinationDir=Directory(destinationPath);
+        if (!await destinationDir.exists()) {
+        await destinationDir.create(recursive: true);
+        }
+        // 대상 경로가 없으면 생성
+        if (entity is File) {
+          final newFile = File(path.join(destinationPath, pathName));
+        await entity.copy(newFile.path);
+
+      }
+    }
+  showMissingDialog(context, "복사완료", "${customfolderPath}에 복사되었습니다.");
+
+
+}
+
 
 @override
 Widget build(BuildContext context) {
   final _provider = Provider.of<provider.SettingsProvider>(context, listen: false);
+  group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
   return Padding(
     padding: const EdgeInsets.all(1.0),
     child: Row(
@@ -431,6 +501,21 @@ Widget build(BuildContext context) {
                       ),
                     ),
                     const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        copyFile();
+                        print('엑셀에 입력하기 클릭');
+                      },
+                      child: const Text('개인폴더에 저장하기'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[200],
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

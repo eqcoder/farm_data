@@ -11,25 +11,19 @@ class SettingsDialog extends StatefulWidget {
 }
 
 class _SettingsDialogState extends State<SettingsDialog> {
-  late TextEditingController _folderController;
+  late TextEditingController _originfolderController;
+  late TextEditingController _customfolderController;
   late List<TextEditingController> _memberControllers;
 
   @override
   void initState() {
     super.initState();
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    _folderController = TextEditingController(text: settings.folderPath);
+    _originfolderController = TextEditingController(text: settings.originfolderPath);
+    _customfolderController = TextEditingController(text: settings.customfolderPath);
     _memberControllers = settings.groupMembers
         .map((member) => TextEditingController(text: member))
         .toList();
-  }
-
-  Future<void> _pickFolder() async {
-    final path = await FilePicker.platform.getDirectoryPath();
-    if (path != null) {
-      _folderController.text = path;
-      Provider.of<SettingsProvider>(context, listen: false).setFolderPath(path);
-    }
   }
 
   @override
@@ -43,7 +37,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // 폴더 경로 선택
-            _buildFolderSelector(),
+            _buildOriginFolderSelector(),
+            const SizedBox(height: 20),
+            _buildCustomFolderSelector(),
             const SizedBox(height: 20),
             // 조 선택
             _buildGroupSelector(),
@@ -84,14 +80,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
-  Widget _buildFolderSelector() {
+  Widget _buildOriginFolderSelector() {
     return Row(
       children: [
         Expanded(
           child: TextField(
-            controller: _folderController,
+            controller: _originfolderController,
             decoration: const InputDecoration(
-              labelText: '생육원본 폴더경로',
+              hintText: "N조 폴더를 선택하세요.",
+              labelText: 'N조 폴더경로',
               border: OutlineInputBorder(),
             ),
             readOnly: true,
@@ -99,7 +96,39 @@ class _SettingsDialogState extends State<SettingsDialog> {
         ),
         IconButton(
           icon: const Icon(Icons.folder_open),
-          onPressed: _pickFolder,
+          onPressed: ()async{
+            final path = await FilePicker.platform.getDirectoryPath();
+    if (path != null) {
+      _originfolderController.text = path;
+      Provider.of<SettingsProvider>(context, listen: false).setOriginFolderPath(path);
+    }
+          }),
+      ],
+    );
+  }
+  Widget _buildCustomFolderSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _customfolderController,
+            decoration: const InputDecoration(
+              hintText: "데이터보관 폴더를 선택하세요.",
+              labelText: '데이터보관 폴더 경로',
+              border: OutlineInputBorder(),
+            ),
+            readOnly: true,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.folder_open),
+          onPressed: ()async{
+            final path = await FilePicker.platform.getDirectoryPath();
+    if (path != null) {
+      _customfolderController.text = path;
+      Provider.of<SettingsProvider>(context, listen: false).setCustomFolderPath(path);
+    }
+          }
         ),
       ],
     );

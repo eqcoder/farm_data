@@ -336,7 +336,7 @@ Container(
                       children: [
                         Container(
           width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.width /3+100,
+          height: MediaQuery.of(context).size.height /3+100,
           decoration: BoxDecoration(
             color: Colors.grey[300], // 기본 배경색
             borderRadius: BorderRadius.circular(10),
