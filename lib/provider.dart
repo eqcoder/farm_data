@@ -16,13 +16,15 @@ class AuthProvider with ChangeNotifier {
 
 
 class SettingsProvider with ChangeNotifier {
-  String _folderPath = '';
+  String _originfolderPath = '';
+  String _customfolderPath = '';
   int _selectedGroup = 1;
   List<String> _groupMembers = [];
   bool _isDarkMode = false;
 
   // Getter
-  String get folderPath => _folderPath;
+  String get originfolderPath => _originfolderPath;
+  String get customfolderPath => _customfolderPath;
   int get selectedGroup => _selectedGroup;
   List<String> get groupMembers => _groupMembers;
   bool get isDarkMode => _isDarkMode;
@@ -30,7 +32,8 @@ class SettingsProvider with ChangeNotifier {
   // Load settings
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _folderPath = prefs.getString('folderPath') ?? '';
+    _originfolderPath = prefs.getString('originfolderPath') ?? '';
+    _customfolderPath = prefs.getString('customfolderPath') ?? '';
     _selectedGroup = prefs.getInt('selectedGroup') ?? 1;
     _groupMembers = prefs.getStringList('groupMembers') ?? [];
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
@@ -40,7 +43,8 @@ class SettingsProvider with ChangeNotifier {
   // Save settings
   Future<void> saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('folderPath', _folderPath);
+    await prefs.setString('originfolderPath', _originfolderPath);
+    await prefs.setString('customfolderPath', _customfolderPath);
     await prefs.setInt('selectedGroup', _selectedGroup);
     await prefs.setStringList('groupMembers', _groupMembers);
     await prefs.setBool('isDarkMode', _isDarkMode);
@@ -48,8 +52,12 @@ class SettingsProvider with ChangeNotifier {
   }
 
   // Setters
-  void setFolderPath(String path) {
-    _folderPath = path;
+  void setOriginFolderPath(String path) {
+    _originfolderPath = path;
+    notifyListeners();
+  }
+  void setCustomFolderPath(String path) {
+    _customfolderPath = path;
     notifyListeners();
   }
 

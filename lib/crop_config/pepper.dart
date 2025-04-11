@@ -13,18 +13,18 @@ final Schema schema = Schema.object(
           '줄기번호': Schema.integer(nullable: false, description: 'column2'),
           '생장길이': Schema.number(nullable: false, description: 'column3'),
           '엽수': Schema.integer(nullable: false, description: 'column4'),
-          '엽장': Schema.number(nullable: false),
-          '엽폭': Schema.number(nullable: false),
-          '줄기굵기': Schema.number(nullable: false),
-          '화방높이': Schema.number(nullable: false),
-          '개화마디': Schema.integer(nullable: false),
-          '착과마디': Schema.integer(nullable: false),
-          '열매마디': Schema.integer(nullable: false),
-          '수확마디': Schema.integer(nullable: false),
-          '개화수': Schema.integer(nullable: false),
-          '착과수': Schema.integer(nullable: false),
-          '열매수': Schema.integer(nullable: false),
-          '수확수': Schema.integer(nullable: false),
+          '엽장': Schema.number(nullable: false, description: 'column5'),
+          '엽폭': Schema.number(nullable: false, description: 'column6'), 
+          '줄기굵기': Schema.number(nullable: false, description: 'column7'),
+          '화방높이': Schema.number(nullable: false, description: 'column8'),
+          '개화마디': Schema.integer(nullable: false, description: 'column9'),
+          '착과마디': Schema.integer(nullable: false, description: 'column10'),
+          '열매마디': Schema.integer(nullable: false, description: 'column11'),
+          '수확마디': Schema.integer(nullable: false, description: 'column12'),
+          '개화수': Schema.integer(nullable: false, description: 'column13'),
+          '착과수': Schema.integer(nullable: false, description: 'column14'),
+          '열매수': Schema.integer(nullable: false, description: 'column15'),
+          '수확수': Schema.integer(nullable: false, description: 'column16'),
         },
         requiredProperties: [
           '개체',
@@ -121,6 +121,10 @@ class _PepperWidgetState extends State<PepperWidget> {
     TextEditingController controller = TextEditingController(
       text: widget.data[rowIndex][columnName].toString(),
     );
+    controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: controller.text.length,
+      );
 
     showDialog(
       context: context,

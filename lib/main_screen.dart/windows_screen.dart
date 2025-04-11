@@ -14,14 +14,17 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../business_trip/opinet.dart';
 import '../home/home_screen.dart';
 import '../setting.dart';
+import '../provider.dart' as provider;
+import 'package:provider/provider.dart';
 
 
 class WindowsScreen extends StatelessWidget {
-  const WindowsScreen({super.key});
+   WindowsScreen({super.key});
+  final settings = provider.SettingsProvider();
 Widget build(BuildContext context) {
     return MaterialApp(
       title: '스마트농업데이터조사',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: settings.isDarkMode ? ThemeData.dark() : ThemeData.light(),
       home: const WindowsMainScreen(),
     );
   }
