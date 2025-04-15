@@ -12,7 +12,7 @@ import '../farm_info/farm_info_screen.dart';
 import 'form.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../business_trip/opinet.dart';
-import '../home/home_screen.dart';
+import '../home/windows_home_screen.dart';
 import '../setting.dart';
 import '../provider.dart' as provider;
 import 'package:provider/provider.dart';

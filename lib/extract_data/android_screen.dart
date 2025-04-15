@@ -96,10 +96,11 @@ Future<void> writeToExcel() async{
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(1.0),
+      padding: const EdgeInsets.all(4.0),
       child: Column(
         children: [
           // 좌측 영역
+          SizedBox(height:8),
           Expanded(
                   flex: 2,
                   child: Row(
@@ -120,7 +121,7 @@ Future<void> writeToExcel() async{
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
                       ElevatedButton.icon(
                         onPressed: () {
                           getImage(ImageSource.camera);
@@ -140,7 +141,7 @@ Future<void> writeToExcel() async{
                     ],
                   ),
                 ),
-                Spacer(flex:1),
+                SizedBox(height:12),
                 // 이미지를 띄우는 컨테이너
                 Expanded(
                   flex: 15,
@@ -157,25 +158,51 @@ Future<void> writeToExcel() async{
                 ),
           Spacer(flex: 1),
           // 야장추출 버튼
-          Expanded(
-            flex: 2,
-            child: TextButton(
-              onPressed: () {
+            ElevatedButton.icon(
+  onPressed: () {
                 if(selectedImage != null){
                 extractImage();}
+                else{
+                  showDialog(
+  context: context,
+  builder: (context) => AlertDialog(
+    contentPadding: EdgeInsets.fromLTRB(0, 40, 0, 20),
+    content: Text('사진을 먼저 추가해주세요.', textAlign: TextAlign.center,style:TextStyle(fontSize:25)),
+    actionsAlignment: MainAxisAlignment.center,
+    actions: [
+      
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: Text('확인', textAlign: TextAlign.center,),
+      ),
+    ],
+  ),
+);
+                }
                 // Map<String, dynamic> extractData(_editedImage!);
                 // 여기에 텍스트 버튼 클릭 시 수행할 동작을 작성합니다.
               },
-              child: Row(
-                mainAxisSize: MainAxisSize.min, // 내용물에 맞게 크기 조절
-                children: <Widget>[
-                  Text('야장추출'),
-                  SizedBox(width: 8), // 텍스트와 아이콘 사이 간격
-                  Icon(Icons.arrow_forward),
-                ],
-              ),
-            ),
-          ),
+  icon: Icon(Icons.download_rounded, color: Colors.white, size: 20),
+  label: Text(
+    '데이터 추출',
+    style: TextStyle(
+      fontSize: 25,
+      fontWeight: FontWeight.bold,
+      color:Colors.white,
+      letterSpacing: 1.1,
+    ),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color.fromARGB(255, 101, 107, 189),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(50),
+    ),
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+    elevation: 6,
+  ),
+)
+
+          ,
           Spacer(flex:1),
           // 우측 영역
           Expanded(
@@ -233,7 +260,7 @@ Future<void> writeToExcel() async{
                 
                   ),
                 ),
-                Spacer(flex:1),
+                SizedBox(height:12),
                 Expanded(
                   flex: 2,
                   child: Row(
@@ -272,7 +299,8 @@ Future<void> writeToExcel() async{
                     ],
                   ),
                 ),
-                Spacer(flex:1)
+                SizedBox(height:8)
               ],
             ),
-          );}}
+          )
+          ;}}

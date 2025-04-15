@@ -25,12 +25,13 @@ class _EnterDataScreenState extends State<EnterDataScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Scaffold(
+      body:Center(
         child:
             Platform.isAndroid
                 ? AndroidEnterDataLayout()
                 : WindowsEnterDataLayout(),
-      );
+      ));
   }
 
   // CropDefault setCrop(Map<String, dynamic> data){

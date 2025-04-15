@@ -2,6 +2,7 @@ import 'package:farm_data/gdrive/gdrive.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -11,6 +12,12 @@ class AuthProvider with ChangeNotifier {
   void setUser(User? user) {
     _user = user;
     notifyListeners(); // 상태 변경 알림
+  }
+
+  Future<void> signOut() async {
+    await GoogleSignIn().signOut();
+    await FirebaseAuth.instance.signOut();
+    setUser(null);
   }
 }
 
