@@ -5,15 +5,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'business_trip/business_trip_screen.dart';
 import 'farm_info/farm_info_screen.dart';
-import 'main_screen.dart/android_screen.dart';
-import 'main_screen.dart/windows_screen.dart';
-import 'main_screen.dart/login.dart';
+import 'main_screen/android_screen.dart';
+import 'main_screen/windows_screen.dart';
+import 'main_screen/login.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'main_screen.dart/auth_rapper.dart';
+import 'main_screen/auth_rapper.dart';
 import 'package:provider/provider.dart';
 import 'provider.dart' as provider;
 import 'setting.dart';
@@ -76,7 +76,9 @@ class AgriculturalBigdataApp extends StatelessWidget {
     final settings = Provider.of<provider.SettingsProvider>(context);
     return MaterialApp(
       title: '농업빅데이터조사',
-      theme: settings.isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      theme: settings.isDarkMode ? ThemeData.dark() : ThemeData(
+        brightness: Brightness.light, // 라이트 모드 설정
+        scaffoldBackgroundColor: Colors.white),
       home: Platform.isAndroid?AuthWrapper():WindowsMainScreen()
     );
   }

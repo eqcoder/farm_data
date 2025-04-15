@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../database.dart';
+import '../appbar.dart';
 
 class FarmInfoScreen extends StatefulWidget {
   @override
@@ -163,7 +164,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('농가 데이터')),
       body: Column(children:[Spacer(flex:1),Expanded(flex:1, child:Row(
         children: [Spacer(flex:1),
           Expanded(flex:5, child:ElevatedButton(

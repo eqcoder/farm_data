@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:farm_data/appbar.dart';
 import 'package:farm_data/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -110,7 +111,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   XFile? result = await FlutterImageCompress.compressAndGetFile(
     file.absolute.path,
     targetPath,
-    quality: 95, // 품질 설정 (0-100)
+    quality: 97, // 품질 설정 (0-100)
     minWidth: 720, // 최소 너비 설정
     minHeight: 1080, // 최소 높이 설정
   );
@@ -157,7 +158,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     imagePath.writeAsBytesSync(_photos[index]!.readAsBytesSync());
         final result = await SaverGallery.saveImage(
           _photos[index]!.readAsBytesSync(),
-          quality: 95, // 이미지 품질 (JPEG만 해당)
+          quality: 97, // 이미지 품질 (JPEG만 해당)
           fileName: '${today}_${city}_${widget.selectedFarm}_${imageTitles[index]}.jpg', // 파일 이름
           androidRelativePath: "Pictures/${today}_${city}_${widget.selectedFarm}/", // 갤러리 내 폴더 경로
           skipIfExists: false
@@ -285,7 +286,7 @@ _deleteImages(){
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("조사사진 업로드")),
+      appBar: CustomAppBar(title: "조사사진 촬영"),
       body: _isLoading?Column(mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
             crossAxisAlignment: CrossAxisAlignment.center,children:[Center(
         child: CircularProgressIndicator()), Text("지난 데이터를 불러오는 중입니다..")])
@@ -350,7 +351,7 @@ Container(
         ),Positioned(
           child: IconButton(
             iconSize: 40,
-            icon: Icon(Icons.camera_alt, color: const Color.fromARGB(255, 9, 109, 39)),
+            icon: Icon(Icons.camera_alt, color: const Color.fromARGB(255, 218, 105, 129)),
             onPressed:(){_takePhoto(index);}, // 사진 선택 함수 호출
           ),
         ),
