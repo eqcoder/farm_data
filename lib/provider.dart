@@ -8,11 +8,17 @@ class AuthProvider with ChangeNotifier {
   User? _user;
 
   User? get user => _user;
-
+AuthProvider() {
+    // 앱 시작 시 로그인 상태 자동 동기화
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _user = user;
+      notifyListeners();
+    });}
   void setUser(User? user) {
     _user = user;
     notifyListeners(); // 상태 변경 알림
   }
+  
 
   Future<void> signOut() async {
     await GoogleSignIn().signOut();

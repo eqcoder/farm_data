@@ -1,15 +1,14 @@
 import 'package:farm_data/business_trip/crop_photo.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
 import '../database.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:map_launcher/map_launcher.dart';
 
 class BusinessTripScreen extends StatefulWidget {
   @override
@@ -43,45 +42,46 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
 
   }
 
+Future<void> requestLocationPermission() async {
+  var status = await Permission.location.request();
 
+  if (status.isGranted) {
+    // 권한 허용됨: 위치 정보 사용 가능
+    print("위치 권한 허용됨");
+  } else if (status.isDenied) {
+    // 권한 거부됨: 안내 메시지 등 처리
+    print("위치 권한 거부됨");
+  } else if (status.isPermanentlyDenied) {
+    // 영구적으로 거부됨: 설정에서 직접 허용 유도
+    openAppSettings();
+  }
+}
   Future<void> _openNaverMaps(BuildContext context, String address, String placeName) async {
   
     setState(() => _loadingMap = true);
 
-    try {
+
+      await requestLocationPermission();
       // 1. 현재 위치 가져오기
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      Position position = await Geolocator.getCurrentPosition();
 
-      double slat = position.latitude;
-      double slng = position.longitude;
+// 2. 주소를 좌표로 변환
+List<Location> locations = await locationFromAddress(address);
+double destLat = locations.first.latitude;
+double destLng = locations.first.longitude;
 
-      // 2. 목적지 주소를 위도/경도로 변환
-      List<Location> locations = await locationFromAddress(address);
-      double dlat = locations.first.latitude;
-      double dlng = locations.first.longitude;
+// 3. 설치된 지도앱 리스트 가져오기
+final availableMaps = await MapLauncher.installedMaps;
 
-      // 3. 네이버 지도 길찾기 URL 생성
-      String url =
-          'nmap://route/car?dlat=$dlat&dlng=$dlng&dname=${Uri.encodeComponent(address)}&appname=${Uri.encodeComponent("com.example.yourapp")}';
-
-      // 4. 네이버 지도 앱 실행, 없으면 웹으로 fallback
-      if (await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url));
-      } else {
-        // 앱이 없으면 웹으로
-        String webUrl =
-            'https://map.naver.com/v5/directions/${slat},${slng},내위치,START/${dlat},${dlng},${Uri.encodeComponent(address)},END?c=${dlat},${dlng},15,0,0,0,dh';
-        await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('길찾기 실행에 실패했습니다: $e')),
-      );
-    } finally {
-      setState(() => _loadingMap = false);
-    }
+// 4. 첫 번째 지도앱으로 길안내 실행 (예: 구글지도)
+await  MapLauncher.showDirections(
+  mapType: MapType.naver,
+  destination: Coords(destLat, destLng),
+  destinationTitle: '목적지',
+  origin: Coords(position.latitude, position.longitude),
+  originTitle: '현재 위치',
+  directionsMode: DirectionsMode.driving,
+);
   }
 
   @override
@@ -130,8 +130,9 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
           Spacer(flex:1),
           Expanded(flex:1, child:Text(
                     '작물: ${farm!.crop}',
-                    style: TextStyle(fontSize: 25),
+                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, color:const Color.fromARGB(255, 11, 128, 30)),
                   )),
+                  SizedBox(height:16),
           Expanded(
             flex:2,
             child: Center(
@@ -148,28 +149,34 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
             SizedBox(width: 10),
               Text(
                 '${farm!.address}',
-                style: TextStyle(fontSize: 20, color: const Color.fromARGB(255, 9, 4, 58), fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 16, color: const Color.fromARGB(255, 9, 4, 58), fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
               ),
             const SizedBox(width: 4),
                   
           ],))),
           SizedBox(width:4),
-          ElevatedButton.icon(style: ElevatedButton.styleFrom(
+          ElevatedButton(
+            child:Column(
+    mainAxisSize: MainAxisSize.max,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [Icon(Icons.directions, size:30),
+ // 아이콘과 텍스트 사이 간격
+      Text('길찾기', style: TextStyle(fontSize: 16)),]),
+            style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 218, 226, 181),
             padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
             shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
     ),),
           onPressed: _loadingMap ? null : ()async{_openNaverMaps(context, farm!.address, "");},
-          icon: Icon(Icons.directions, size:30),
-          label: Text('길찾기', style:TextStyle(fontSize:20)),
+          
         ),
                   
                   ]))),
                   SizedBox(height:16),
                   Expanded(flex:10, child:Card(
-                    color: const Color.fromARGB(255, 239, 243, 189),
+                    color: const Color.fromARGB(255, 253, 253, 250),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Row(
@@ -187,13 +194,36 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                   
           ],)))),
                   Spacer(flex:1),
-            Expanded(flex:3, child:
+                  Expanded(flex:2, child:
+            Padding(
+  padding: EdgeInsets.symmetric(horizontal: 40), child:ElevatedButton(
+              style: ElevatedButton.styleFrom(
+    backgroundColor: const Color.fromARGB(255, 241, 240, 160),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    ),
+    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    elevation: 3,
+  ),
+              onPressed: () {
+              },
+
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
+            crossAxisAlignment: CrossAxisAlignment.center,children:[
+              
+                
+                Icon(Icons.person_search, size:40, color:const Color.fromARGB(255, 44, 22, 122)),
+                SizedBox(width:16),
+                Text("생육조사", style: TextStyle(fontSize:30, color:const Color.fromARGB(255, 44, 22, 122), fontWeight: FontWeight.bold),),]
+            )))),
+            SizedBox(height:16),
+            Expanded(flex:2, child:
             Padding(
   padding: EdgeInsets.symmetric(horizontal: 40), child:ElevatedButton(
               style: ElevatedButton.styleFrom(
     backgroundColor: const Color.fromARGB(255, 210, 240, 210),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(100),
+      borderRadius: BorderRadius.circular(10),
     ),
     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
     elevation: 3,
@@ -212,7 +242,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                 
                 Icon(Icons.camera_alt, size:40, color:const Color.fromARGB(255, 44, 22, 122)),
                 SizedBox(width:16),
-                Text("조사사진 촬영", style: TextStyle(fontSize:40, color:const Color.fromARGB(255, 44, 22, 122), fontWeight: FontWeight.bold),),]
+                Text("조사사진 촬영", style: TextStyle(fontSize:30, color:const Color.fromARGB(255, 44, 22, 122), fontWeight: FontWeight.bold),),]
             )))),
             Spacer(flex:1)
         ]));

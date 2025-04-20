@@ -30,7 +30,7 @@ class WindowsEnterDataLayout extends StatefulWidget {
 }
 
 class _WindowsEnterDataWidgetState extends State<WindowsEnterDataLayout> {
-  BackUpRepository backUpRepository = BackUpRepository.instance;
+  GoogleDriveClass backUpRepository =GoogleDriveClass.instance;
   File? selectedImage;
   Uint8List? editedImage;
   bool isLoading = false;

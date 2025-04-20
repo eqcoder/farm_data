@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
+
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../database.dart';
-import '../appbar.dart';
 
 class FarmInfoScreen extends StatefulWidget {
   @override

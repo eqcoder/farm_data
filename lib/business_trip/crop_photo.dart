@@ -13,23 +13,16 @@ import '../database.dart';
 import 'dart:convert';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:googleapis_auth/googleapis_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:provider/provider.dart';
 import '../provider.dart' as provider;
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 
-final GoogleSignIn _googleSignIn = GoogleSignIn(
-  scopes: [
-    'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/drive.file',
-  ],
-);
+
 
 class CropPhotoScreen extends StatefulWidget {
   final String selectedFarm;
@@ -167,62 +160,16 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   }
   }
   
-  Future<String> createFolder(drive.DriveApi driveApi, String name, String? parentId) async {
-    
-    final query = parentId != null 
-      ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
-      : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
-    final response = await driveApi.files.list(q: query);
 
-    if (response.files?.isNotEmpty ?? false) {
-      return response.files!.first.id!;
-    } else {
-      final folderMetadata = drive.File()
-        ..name = name
-        ..mimeType = "application/vnd.google-apps.folder"
-        ..parents = parentId != null ? [parentId] : null;
-
-      final folder = await driveApi.files.create(folderMetadata);
-      return folder.id!;
-    }
-  }
   
 
-  // 이미지 선택 및 업로드 함수
-  Future<void> uploadPhotoToDrive({
-  required drive.DriveApi driveApi,
-  required String folderId,
-  required String fileName,
-  required File imageFile,
-}) async {
-  final existingFiles = await driveApi.files.list(
-      q: "'$folderId' in parents and name='$fileName'",
-    );
 
-    if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
-      // 기존 파일 삭제 (덮어쓰기)
-      for (var file in existingFiles.files!) {
-        await driveApi.files.delete(file.id!);
-      }
-    }
-  final file = drive.File()
-    ..name = fileName
-    ..parents = [folderId];
-
-  final media = drive.Media(
-    imageFile.openRead(),
-    imageFile.lengthSync(),
-  );
-
-  await driveApi.files.create(
-    file,
-    uploadMedia: media,
-  );
-}
 Future<void> uploadToGoogleDrive(BuildContext context) async {
   try {
     // 1. Google 로그인
-    final GoogleSignInAccount? account = await _googleSignIn.signIn();
+    final GoogleDriveClass gdrive=GoogleDriveClass.instance;
+    final GoogleSignInAccount? account = await gdrive.googleSignIn.signIn();
+    
     if (account == null) return;
 
     // 2. Drive API 클라이언트 생성
@@ -254,15 +201,15 @@ Future<void> uploadToGoogleDrive(BuildContext context) async {
     );
     // 3. 오늘 날짜 폴더 생성
     final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
-    final rootFolderId = await createFolder(driveApi, "$group조", null);
-    final imageFolderId = await createFolder(driveApi, "$group조_생육사진", rootFolderId);
-    final farmImageFolderId = await createFolder(driveApi, "${today}_${crop}_${city}_${widget.selectedFarm}", imageFolderId);
+    final rootFolderId = await gdrive.createFolder(driveApi, "$group조", null);
+    final imageFolderId = await gdrive.createFolder(driveApi, "$group조_생육사진", rootFolderId);
+    final farmImageFolderId = await gdrive.createFolder(driveApi, "${today}_${crop}_${city}_${widget.selectedFarm}", imageFolderId);
 
     // 4. 사진 업로드
     for(var i=0;i<_photos.length;i++){
       if(_photos[i]!=null){
         
-        uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${crop}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
+        gdrive.uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${crop}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
       }
     }
 
@@ -323,8 +270,8 @@ Container(
             shrinkWrap: true,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, // 3개의 열
-        crossAxisSpacing: 20, // 열 간격
-        mainAxisSpacing: 20, // 행 
+        crossAxisSpacing: 10, // 열 간격
+        mainAxisSpacing: 0, // 행 
         childAspectRatio: 0.6,
               ),
               itemCount: 9,
@@ -337,7 +284,7 @@ Container(
                       children: [
                         Container(
           width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.height /3+100,
+          height: MediaQuery.of(context).size.height /3+50,
           decoration: BoxDecoration(
             color: Colors.grey[300], // 기본 배경색
             borderRadius: BorderRadius.circular(10),
@@ -356,13 +303,14 @@ Container(
           ),
         ),
                     ])),
-                    SizedBox(height:5),
                       Expanded(flex:1,child:// 🔹 사진 파일명 or 기본 제목 표시
                       Text(
                         imageTitles[index],
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          wordSpacing: -0.5,
+                          letterSpacing: -0.5
                         ),
                         textAlign: TextAlign.center,
                       ),)
@@ -391,7 +339,7 @@ Container(
             color: Colors.grey,
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 10),
         Text(
           value,
           style: const TextStyle(
