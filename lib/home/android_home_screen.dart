@@ -45,8 +45,8 @@ class AndroidHomeScreen extends StatelessWidget {
       MaterialPageRoute(builder: (_) => LoginScreen()),
     );
   },
-  icon: Icon(Icons.logout, color: const Color.fromARGB(255, 51, 17, 17)),
-  label: Text('로그아웃', style: TextStyle(fontSize: 20)),
+  icon: Icon(Icons.logout, color: const Color.fromARGB(255, 51, 17, 17), size:30),
+  label: Text('로그아웃', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
   style: ElevatedButton.styleFrom(
     backgroundColor: const Color.fromARGB(255, 231, 218, 157),
     shape: RoundedRectangleBorder(

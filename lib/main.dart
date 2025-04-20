@@ -75,11 +75,22 @@ class AgriculturalBigdataApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = Provider.of<provider.SettingsProvider>(context);
     return MaterialApp(
+      
       title: '농업빅데이터조사',
       theme: settings.isDarkMode ? ThemeData.dark() : ThemeData(
         brightness: Brightness.light, // 라이트 모드 설정
         scaffoldBackgroundColor: Colors.white),
-      home: Platform.isAndroid?AuthWrapper():WindowsMainScreen()
+      home: Platform.isAndroid?AuthWrapper():WindowsMainScreen(),
+
+      builder: (context, child) {
+        // 최신 Flutter에서는 textScaler 사용
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(1.0), // 텍스트 크기 고정
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }

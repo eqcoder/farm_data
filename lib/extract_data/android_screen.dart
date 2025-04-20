@@ -13,9 +13,21 @@ import '../crop_config/pepper.dart';
 import 'gemini.dart';
 import 'dart:convert';
 import 'package:gallery_saver_plus/gallery_saver.dart';
+import '../gdrive/gdrive.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import '../provider.dart' as provider;
+import 'package:googleapis/sheets/v4.dart' as sheets;
+import 'package:googleapis_auth/googleapis_auth.dart' as google_auth;
+import 'package:googleapis/drive/v3.dart' as drive;
 
 
-
+final _googleSignIn = GoogleSignIn(
+  scopes: [
+    drive.DriveApi.driveFileScope,
+    sheets.SheetsApi.spreadsheetsScope,
+  ],
+);
 class AndroidEnterDataLayout extends StatefulWidget {
 
   _AndroidEnterDataWidgetState createState() => _AndroidEnterDataWidgetState();
@@ -27,6 +39,8 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
   Uint8List? editedImage;
   Map<String, dynamic>? crop;
   bool isLoading = false;
+  String? _spreadsheetId;
+  final GoogleDriveClass gdrive=GoogleDriveClass.instance;
 
   final TextEditingController farmNameController = TextEditingController();
   final TextEditingController cropNameController = TextEditingController();
@@ -93,6 +107,63 @@ Future<void> writeToExcel() async{
     // Python에서 반환된 결과
 
 }
+
+
+Future<void> checkExcelFile() async{
+    
+    
+    final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
+    gdrive.signIn();
+    if(gdrive.driveApi!=null){
+    final driveApi = gdrive.driveApi!;
+    final rootFolderId = await gdrive.createFolder(driveApi, "$group조", null);
+    final dataFolderId = await gdrive.createFolder(driveApi, "$group조_생육원본", rootFolderId);
+    final fileName='25년_${cropNameController.text}_생육원본_${farmNameController.text}.xlsm';
+    final fileResponse = await driveApi.files.list(
+        q: "'$dataFolderId' in parents and name='$fileName' and mimeType='application/vnd.ms-excel.sheet.macroEnabled.12' and trashed=false",
+      );
+
+      if (fileResponse.files!.isEmpty) {
+        showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('파일 없음'),
+        content: Text('$fileName 파일이 $group조/$group조_생육원본에 존재하지 않습니다. 구글드라이브에 파일을 추가해주세요'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('확인'),
+          ),
+        ],
+      ),
+    );
+      } else {
+        _spreadsheetId = fileResponse.files!.first.id;
+    
+        _writeDataToSheet();
+      }
+    }
+}
+  Future<void> _writeDataToSheet() async {
+    
+    final sheetsApi = gdrive.sheetsApi;
+    final data = [
+      ['이름', '나이', '성별'],
+      ['홍길동', '30', '남'],
+      ['김철수', '25', '남'],
+    ];
+
+    await sheetsApi.spreadsheets.values.append(
+      sheets.ValueRange.fromJson({'values': data}),
+      _spreadsheetId!,
+      'A1',
+      valueInputOption: 'USER_ENTERED',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('데이터가 저장되었습니다')));
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -186,7 +257,7 @@ Future<void> writeToExcel() async{
   label: Text(
     '데이터 추출',
     style: TextStyle(
-      fontSize: 25,
+      fontSize: 20,
       fontWeight: FontWeight.bold,
       color:Colors.white,
       letterSpacing: 1.1,
@@ -266,23 +337,10 @@ Future<void> writeToExcel() async{
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          print('엑셀에 입력하기 클릭');
-                        },
-                        child: const Text('엑셀에 입력하기'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          foregroundColor: Colors.black87,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                      ),
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: () {
+                          checkExcelFile();
                           print('드라이브에 업로드하기 클릭');
                         },
                         child: const Text('드라이브에 업로드하기'),

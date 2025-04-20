@@ -11,48 +11,40 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path/path.dart' as path;
+import 'package:googleapis/sheets/v4.dart' as sheets;
 
 const _clientId =
     "455278327943-k1o8o9nm6bs41trsbppuoaof19c136eb.apps.googleusercontent.com";
 const _scopes = ['https://www.googleapis.com/auth/drive.file'];
 
 
-class BackUpRepository {
-  static final BackUpRepository instance = BackUpRepository._internal();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [drive.DriveApi.driveFileScope],
-  );
-  BackUpRepository._internal();
-  drive.DriveApi? _driveApi;
-  
+class GoogleDriveClass {
+  static final GoogleDriveClass instance = GoogleDriveClass._internal();
+  GoogleDriveClass._internal();
+  drive.DriveApi? driveApi;
+  late sheets.SheetsApi sheetsApi;
+  final GoogleSignIn googleSignIn = GoogleSignIn(
+  scopes: [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/drive.file',
+  ],
+);
   //로그인
   Future<void> signIn() async {
-    final GoogleSignInAccount? account = await _googleSignIn.signIn();
+    final GoogleSignInAccount? account = await googleSignIn.signIn();
     if (account == null) {
       print('사용자 로그인 취소');
       return;
     }
 
-    final GoogleSignInAuthentication authentication = await account.authentication;
 
   // AccessCredentials 객체 생성
-  final google_auth.AccessCredentials credentials = google_auth.AccessCredentials(
-    google_auth.AccessToken(
-      'Bearer',  // 토큰 타입
-      authentication.accessToken!, // String을 AccessToken으로 변환
-      DateTime.now().add(Duration(hours: 1)), // 만료 시간 (예제)
-    ),
-    authentication.idToken,  // ID 토큰 (nullable)
-    [], // 권한 범위 (여기서는 빈 배열)
-  );
+  final authHeaders = await account.authHeaders;
+    final client = GoogleAuthClient(header:authHeaders);
 
-    final GoogleSignInAuthentication auth = await account.authentication;
-    final google_auth.AuthClient client = google_auth.authenticatedClient(
-      http.Client(),
-      credentials,
-    );
-
-    _driveApi = drive.DriveApi(client);
+    driveApi = drive.DriveApi(client);
+    sheetsApi = sheets.SheetsApi(client!);
     print('✅ 로그인 성공: ${account.email}');
   }
 
@@ -66,9 +58,57 @@ class BackUpRepository {
       GoogleSignInAccount googleSignInAccount) async {
     final header = await googleSignInAccount.authHeaders;
     GoogleAuthClient googleAuthClient = GoogleAuthClient(header: header);
-    _driveApi= drive.DriveApi(googleAuthClient);
+    driveApi= drive.DriveApi(googleAuthClient);
   }
+  Future<String> createFolder(drive.DriveApi driveApi, String name, String? parentId) async {
+    
+    final query = parentId != null 
+      ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
+      : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
+    final response = await driveApi.files.list(q: query);
 
+    if (response.files?.isNotEmpty ?? false) {
+      return response.files!.first.id!;
+    } else {
+      final folderMetadata = drive.File()
+        ..name = name
+        ..mimeType = "application/vnd.google-apps.folder"
+        ..parents = parentId != null ? [parentId] : null;
+
+      final folder = await driveApi.files.create(folderMetadata);
+      return folder.id!;
+    }
+  }
+  Future<void> uploadPhotoToDrive({
+  required drive.DriveApi driveApi,
+  required String folderId,
+  required String fileName,
+  required File imageFile,
+}) async {
+  final existingFiles = await driveApi.files.list(
+      q: "'$folderId' in parents and name='$fileName'",
+    );
+
+    if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
+      // 기존 파일 삭제 (덮어쓰기)
+      for (var file in existingFiles.files!) {
+        await driveApi.files.delete(file.id!);
+      }
+    }
+  final file = drive.File()
+    ..name = fileName
+    ..parents = [folderId];
+
+  final media = drive.Media(
+    imageFile.openRead(),
+    imageFile.lengthSync(),
+  );
+
+  await driveApi.files.create(
+    file,
+    uploadMedia: media,
+  );
+}
   Future<drive.File?> upLoad(
       {required drive.DriveApi driveApi,
       required File file,

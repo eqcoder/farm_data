@@ -74,7 +74,7 @@ class FarmDatabase {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-      if (oldVersion < 1) {
+      if (oldVersion < 5) {
         
         await db.execute('ALTER TABLE farms ADD COLUMN city TEXT');
       }
