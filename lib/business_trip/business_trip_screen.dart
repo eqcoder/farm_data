@@ -1,4 +1,4 @@
-import 'package:farm_data/business_trip/crop_photo.dart';
+import 'crop_photo.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path/path.dart';
@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:map_launcher/map_launcher.dart';
+import 'survey_screen/growth_survey.dart';
 
 class BusinessTripScreen extends StatefulWidget {
   @override
@@ -157,12 +158,6 @@ await  MapLauncher.showDirections(
           ],))),
           SizedBox(width:4),
           ElevatedButton(
-            child:Column(
-    mainAxisSize: MainAxisSize.max,
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [Icon(Icons.directions, size:30),
- // 아이콘과 텍스트 사이 간격
-      Text('길찾기', style: TextStyle(fontSize: 16)),]),
             style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 218, 226, 181),
             padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
@@ -170,6 +165,13 @@ await  MapLauncher.showDirections(
       borderRadius: BorderRadius.circular(10),
     ),),
           onPressed: _loadingMap ? null : ()async{_openNaverMaps(context, farm!.address, "");},
+            child:Column(
+    mainAxisSize: MainAxisSize.max,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [Icon(Icons.directions, size:30),
+ // 아이콘과 텍스트 사이 간격
+      Text('길찾기', style: TextStyle(fontSize: 16)),]),
+            
           
         ),
                   
@@ -206,6 +208,11 @@ await  MapLauncher.showDirections(
     elevation: 3,
   ),
               onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => GrowthSurveyScreen(farm:farm!),
+                  ),
+                );
               },
 
               child: Row(mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
@@ -231,7 +238,7 @@ await  MapLauncher.showDirections(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (BuildContext context) => CropPhotoScreen(selectedFarm: selectedFarm!),
+                    builder: (BuildContext context) => CropPhotoScreen(selectedFarm: farm!),
                   ),
                 );
               },

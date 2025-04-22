@@ -16,6 +16,7 @@ import '../home/windows_home_screen.dart';
 import '../setting.dart';
 import '../provider.dart' as provider;
 import 'package:provider/provider.dart';
+import '../business_trip/business_trip_screen.dart';  
 
 
 class WindowsScreen extends StatelessWidget {
@@ -41,7 +42,7 @@ class _WindowsMainScreenState extends State<WindowsMainScreen> {
 int _selectedIndex = 0;
 Widget build(BuildContext context) {
   List<Widget> _screens = [
-    WindowsHomeScreen(), EnterDataScreen(), FarmInfoScreen(),Opinet(), // 각 화면을 리스트로 관리
+    WindowsHomeScreen(), EnterDataScreen(), FarmInfoScreen(),Opinet(), BusinessTripScreen(), // 각 화면을 리스트로 관리
   ];
   
     return Scaffold(
@@ -100,6 +101,12 @@ Widget build(BuildContext context) {
                   title: const Text('여비운임비'),
                   selected: _selectedIndex == 2,
                   onTap: () => _updateScreen(3),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.payments),
+                  title: const Text('출장'),
+                  selected: _selectedIndex == 2,
+                  onTap: () => _updateScreen(4),
                 ),
               ],
             ),

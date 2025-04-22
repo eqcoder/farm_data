@@ -19,6 +19,7 @@ import 'provider.dart' as provider;
 import 'setting.dart';
 import 'appbar.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'business_trip/survey_screen/growth_survey.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
