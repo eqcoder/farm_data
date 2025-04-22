@@ -25,7 +25,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 
 class CropPhotoScreen extends StatefulWidget {
-  final String selectedFarm;
+  final Farm selectedFarm;
   
 
   const CropPhotoScreen({super.key, required this.selectedFarm});
@@ -45,6 +45,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   late Database db;
   late String crop;
   late String city;
+  late String name;
   
   
   final List<String> imageTitles = [
@@ -77,15 +78,11 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     List<Map<String, dynamic>> rows = await db.query(tableName);
     print('테이블 $tableName 내용: $rows');
   }
-    final maps = await db.query(
-    'farms',
-    where: 'name = ?',
-    whereArgs: [widget.selectedFarm],
-  );
-  crop=maps.first['crop'].toString();
-  city=maps.first['city'].toString();
-  if(maps.first['survey_photos']!=null){
-    List<String?> fileList=List<String?>.from(jsonDecode(maps.first['survey_photos'] as String));
+  name=widget.selectedFarm.name.toString();
+  crop=widget.selectedFarm.crop.toString();
+  city=widget.selectedFarm.city.toString();
+  if(widget.selectedFarm.survey_photos!=null){
+    List<String?> fileList=List<String?>.from(jsonDecode(widget.selectedFarm.survey_photos as String));
     setState(() {
       
     _photos=fileList.map((path) {
@@ -156,7 +153,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
           androidRelativePath: "Pictures/${today}_${city}_${widget.selectedFarm}/", // 갤러리 내 폴더 경로
           skipIfExists: false
         );
-  farm.updateSurveyPhotos(widget.selectedFarm, _photos.map((file){return  file?.path;}).toList());
+  farm.updateSurveyPhotos(widget.selectedFarm.id!, _photos.map((file){return  file?.path;}).toList());
   }
   }
   
@@ -257,7 +254,7 @@ Container(
             ),child:Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildInfoItem("농가명", widget.selectedFarm),
+                _buildInfoItem("농가명", name),
                 _buildInfoItem("지역", city),
                 _buildInfoItem("작물", crop),
               ],

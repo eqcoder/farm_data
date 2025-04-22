@@ -15,6 +15,8 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController _nameController = TextEditingController();
   String? _crop;
+  int? _selectedStemCount;
+  final List<int> _stemCounts = [1, 2, 3];
   TextEditingController _cropController = TextEditingController();
   TextEditingController _addressController = TextEditingController();
   int? selectedIndex;
@@ -85,10 +87,35 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
               onChanged: (value) => setState(() => _crop = value),
               validator: (value) => value == null ? "작물명을 선택하세요" : null,
             ),
+            DropdownButtonFormField<int>(
+  value: _selectedStemCount,
+  decoration: InputDecoration(labelText: '줄기개수'),
+  items: _stemCounts.map((count) {
+    return DropdownMenuItem<int>(
+      value: count,
+      child: Text('$count'),
+    );
+  }).toList(),
+  onChanged: (value) {
+    setState(() {
+      _selectedStemCount = value;
+    });
+  },
+  validator: (value) => value == null ? '줄기개수를 선택하세요' : null,
+),
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(labelText: '주소'),
-                  validator: (value) => value!.isEmpty ? '주소를 입력하세요' : null,
+                  validator: (value)  {
+    if (value == null || value.isEmpty) {
+      return '주소를 입력하세요';
+    }
+    // 시/군/구가 포함되어 있는지 정규식으로 체크 (예시: '시' 또는 '군' 또는 '구'가 포함되어야 함)
+    if (!(value.contains('시') || value.contains('군'))) {
+      return '주소에 시/군/구 정보를 포함해주세요';
+    }
+    return null;
+  },
                 ),
               ],
             ),
@@ -120,9 +147,10 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     String crop = _crop!;
     String address = _addressController.text;
     String city= _extractCity(address);
+    int stem_count = _selectedStemCount!;
     if (selectedFarm == null) {
       // 새로운 농가 추가
-      Farm newFarm = Farm(name: name, crop: crop, address: address, city:city);
+      Farm newFarm = Farm(name: name, crop: crop, address: address, city:city, stem_count: stem_count, survey_photos: null);
       await FarmDatabase.instance.insertFarm(newFarm);
     } else {
       // 기존 농가 수정
@@ -131,7 +159,9 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
         name: name,
         crop: crop,
         address: address,
-        city:city
+        city:city,
+        stem_count: stem_count,
+        survey_photos: selectedFarm!.survey_photos,
       );
       await FarmDatabase.instance.updateFarm(updatedFarm);
     }
@@ -189,6 +219,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   columns: [
                     DataColumn(label: Text('농가명')),
                     DataColumn(label: Text('작물')),
+                    DataColumn(label: Text('줄기개수')),
                     DataColumn(label: Text('주소')),
                   ],
                   rows:
@@ -202,6 +233,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                           cells: [
                             DataCell(Text(entry.value.name)),
                             DataCell(Text(entry.value.crop)),
+                            DataCell(Text(entry.value.stem_count.toString())),
                             DataCell(Text(entry.value.address)),
                           ],
                         );
