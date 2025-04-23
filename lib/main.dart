@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
-import 'extract_data/main_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
-import 'business_trip/business_trip_screen.dart';
-import 'farm_info/farm_info_screen.dart';
-import 'main_screen/android_screen.dart';
-import 'main_screen/windows_screen.dart';
-import 'main_screen/login.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'main_screen/auth_rapper.dart';
 import 'package:provider/provider.dart';
 import 'provider.dart' as provider;
-import 'setting.dart';
-import 'appbar.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'business_trip/survey_screen/growth_survey.dart';
+import 'package:flutter/gestures.dart';
+import 'main_screen/windows_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,11 +36,22 @@ void main() async {
         ChangeNotifierProvider(
       create: (_) => settings,
     ),
+    ChangeNotifierProvider(
+      create: (_) => SurveyState(farmId: 1)),
       ],child:AgriculturalBigdataApp()));
 }
 
 // 클래스 추
-
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,       // 마우스 드래그 허용
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.unknown,
+    PointerDeviceKind.trackpad,    // 트랙패드도 명시적으로 추가 가능
+  };
+}
 Future<void> initWindows() async {
   // `window_manager` 초기화
 
@@ -76,7 +78,7 @@ class AgriculturalBigdataApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = Provider.of<provider.SettingsProvider>(context);
     return MaterialApp(
-      
+      scrollBehavior: AppScrollBehavior(),
       title: '농업빅데이터조사',
       theme: settings.isDarkMode ? ThemeData.dark() : ThemeData(
         brightness: Brightness.light, // 라이트 모드 설정
