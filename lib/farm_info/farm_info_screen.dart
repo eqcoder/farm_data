@@ -148,10 +148,13 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     String address = _addressController.text;
     String city= _extractCity(address);
     int stem_count = _selectedStemCount!;
+    final farmInstance =await FarmDatabase.instance;
     if (selectedFarm == null) {
       // 새로운 농가 추가
       Farm newFarm = Farm(name: name, crop: crop, address: address, city:city, stem_count: stem_count, survey_photos: null);
-      await FarmDatabase.instance.insertFarm(newFarm);
+      int farmId= await farmInstance.insertFarm(newFarm);
+      
+      await farmInstance.addEntity(farmId, stem_count); // 줄기 개수에 따라 엔티티 추가
     } else {
       // 기존 농가 수정
       Farm updatedFarm = Farm(
@@ -163,7 +166,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
         stem_count: stem_count,
         survey_photos: selectedFarm!.survey_photos,
       );
-      await FarmDatabase.instance.updateFarm(updatedFarm);
+      await farmInstance.updateFarm(updatedFarm);
     }
 
     _loadFarms(); // 데이터 다시 로드
@@ -218,6 +221,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   showCheckboxColumn: false, 
                   columns: [
                     DataColumn(label: Text('농가명')),
+                    DataColumn(label: Text('id')),
                     DataColumn(label: Text('작물')),
                     DataColumn(label: Text('줄기개수')),
                     DataColumn(label: Text('주소')),
@@ -232,6 +236,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     });},
                           cells: [
                             DataCell(Text(entry.value.name)),
+                            DataCell(Text(entry.value.id.toString())),
                             DataCell(Text(entry.value.crop)),
                             DataCell(Text(entry.value.stem_count.toString())),
                             DataCell(Text(entry.value.address)),

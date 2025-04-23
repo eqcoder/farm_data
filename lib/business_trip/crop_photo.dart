@@ -139,7 +139,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     
 
   if (_photos[index] != null) {
-    final saveFolder = Directory('${externalStorageDirectory.path}/${today}_${crop}_${city}_${widget.selectedFarm}');
+    final saveFolder = Directory('${externalStorageDirectory.path}/${today}_${city}_${crop}_${widget.selectedFarm}');
     if (!saveFolder.existsSync()) {
       saveFolder.createSync();
       print('"3조" 폴더가 생성되었습니다.');
@@ -149,7 +149,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         final result = await SaverGallery.saveImage(
           _photos[index]!.readAsBytesSync(),
           quality: 97, // 이미지 품질 (JPEG만 해당)
-          fileName: '${today}_${city}_${widget.selectedFarm}_${imageTitles[index]}.jpg', // 파일 이름
+          fileName: '${today}_${city}_${crop}_${widget.selectedFarm}_${imageTitles[index]}.jpg', // 파일 이름
           androidRelativePath: "Pictures/${today}_${city}_${widget.selectedFarm}/", // 갤러리 내 폴더 경로
           skipIfExists: false
         );
@@ -200,13 +200,13 @@ Future<void> uploadToGoogleDrive(BuildContext context) async {
     final group = Provider.of<provider.SettingsProvider>(context, listen: false).selectedGroup;
     final rootFolderId = await gdrive.createFolder(driveApi, "$group조", null);
     final imageFolderId = await gdrive.createFolder(driveApi, "$group조_생육사진", rootFolderId);
-    final farmImageFolderId = await gdrive.createFolder(driveApi, "${today}_${crop}_${city}_${widget.selectedFarm}", imageFolderId);
+    final farmImageFolderId = await gdrive.createFolder(driveApi, "${today}_${city}_${crop}_${widget.selectedFarm}", imageFolderId);
 
     // 4. 사진 업로드
     for(var i=0;i<_photos.length;i++){
       if(_photos[i]!=null){
         
-        gdrive.uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${crop}_${city}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
+        gdrive.uploadPhotoToDrive(driveApi: driveApi, folderId: farmImageFolderId, fileName: '${today}_${city}_${crop}_${widget.selectedFarm}_${imageTitles[i]}', imageFile: _photos[i]!);
       }
     }
 

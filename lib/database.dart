@@ -100,46 +100,58 @@ class FarmDatabase {
     final fullpath = join(dbPath, path);
     
     return await openDatabase(
-      version:7,
+      version:10,
       fullpath,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE farms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            crop TEXT,
-            address TEXT,
-            survey_photos TEXT,
-            city TEXT
-            stem_count INTEGER
-
-        ''');
-        await db.execute('''
+      // 1. farms 테이블
+      await db.execute('''
+        CREATE TABLE farms (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-  farm_id INTEGER,         -- farms.id 참조
-  entity_number INTEGER,   -- 개체 번호 (1~10)
-  FOREIGN KEY(farm_id) REFERENCES farms(id)
+          name TEXT,
+          crop TEXT,
+          address TEXT,
+          survey_photos TEXT,
+          city TEXT,
+          stem_count INTEGER
+        )
+      ''');
 
-        ''');
-        await db.execute('''
-          CREATE TABLE stems (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  entity_id INTEGER,       -- entities.id 참조
-  stem_number INTEGER,     -- 줄기 번호 (1~2)
-  FOREIGN KEY(entity_id) REFERENCES entities(id)
-        ''');
-        await db.execute('''
-          CREATE TABLE nodes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  stem_id INTEGER,         -- stems.id 참조
-  node_number INTEGER,     -- 마디 번호 (1~30)
-  status TEXT,             -- 상태 (개화/착과/열매/수확)
-  FOREIGN KEY(stem_id) REFERENCES stems(id)
-        ''');
-        await db.execute('CREATE INDEX idx_entities_farm ON entities(farm_id)');
-await db.execute('CREATE INDEX idx_stems_entity ON stems(entity_id)');
-await db.execute('CREATE INDEX idx_nodes_stem ON nodes(stem_id)');
-      },
+      // 2. entities 테이블
+      await db.execute('''
+        CREATE TABLE entities (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          farm_id INTEGER,
+          entity_number INTEGER,
+          FOREIGN KEY(farm_id) REFERENCES farms(id)
+        )
+      ''');
+
+      // 3. stems 테이블
+      await db.execute('''
+        CREATE TABLE stems (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entity_id INTEGER,
+          stem_number INTEGER,
+          FOREIGN KEY(entity_id) REFERENCES entities(id)
+        )
+      ''');
+
+      // 4. nodes 테이블
+      await db.execute('''
+        CREATE TABLE nodes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          stem_id INTEGER,
+          node_number INTEGER,
+          status TEXT,
+          FOREIGN KEY(stem_id) REFERENCES stems(id)
+        )
+      ''');
+
+      // 인덱스 생성
+      await db.execute('CREATE INDEX idx_entities_farm ON entities(farm_id)');
+      await db.execute('CREATE INDEX idx_stems_entity ON stems(entity_id)');
+      await db.execute('CREATE INDEX idx_nodes_stem ON nodes(stem_id)');
+    },
       onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 6) {
   await db.execute('ALTER TABLE farms ADD COLUMN stem_count INTEGER');
@@ -150,22 +162,23 @@ await db.execute('CREATE INDEX idx_nodes_stem ON nodes(stem_id)');
 
   Future<void> addEntity(int farmId, int entityNumber) async {
     final db = await database;
-    final farm = await db.query(
+    final farms = await db.query(
       'farms',
       where: 'id = ?',
       whereArgs: [farmId],
     );
-    if (farm.isEmpty) throw Exception('농가를 찾을 수 없습니다');
-    final stemCount = farm.first['stem_count'] as int;
+    if (farms.isEmpty) return;
+    final stemCount = farms.first['stem_count'] as int;
     final entityId = await db.insert('entities', {
       'farm_id': farmId,
       'entity_number': entityNumber,
     });
     for (int i = 1; i <= stemCount; i++) {
-      await db.insert('stems', {
+      int stemId=await db.insert('stems', {
         'entity_id': entityId,
         'stem_number': i,
       });
+      await addNode(stemId, 1); // 첫 번째 마디 추가
     }
 
   }
@@ -183,6 +196,21 @@ await db.execute('CREATE INDEX idx_nodes_stem ON nodes(stem_id)');
       'node_number': nodeNumber,
       'status': '개화',
     });
+  }Future<int> deleteStem(int stemId) async {
+    final db = await database;
+    return await db.delete(
+      'stems',
+      where: 'id = ?', // ID 기준으로 삭제
+      whereArgs: [stemId], // 삭제할 ID 값
+    );
+  }
+  Future<int> deleteNode(int nodeId) async {
+    final db = await database;
+    return await db.delete(
+      'nodes',
+      where: 'id = ?', // ID 기준으로 삭제
+      whereArgs: [nodeId], // 삭제할 ID 값
+    );
   }
   Future<void> updateNodeStatus(int nodeId, String newStatus) async {
     final db = await database;
