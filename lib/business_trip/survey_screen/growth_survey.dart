@@ -66,7 +66,7 @@ Widget _addStemCard(int farmId, int entityNum) {
                   int stemNumber=index>0?state.stems[index - 1]['entity_number'] + 1:1;
                   return _addStemCard(state.farmId, stemNumber);
                 }
-                return _StemView(stem: state.stems[index]);
+                return _StemView(stem: state.stems[index], name:widget.farm.name);
               },
             ),
           ),
@@ -179,12 +179,15 @@ class SurveyState with ChangeNotifier {
 
 class _StemView extends StatelessWidget {
   final Map<String, dynamic> stem;
+  final String name;
 
-  const _StemView({required this.stem});
+  const _StemView({required this.stem, required this.name});
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<SurveyState>();
+    bool isMatched = false;
+    final TextEditingController _farmNameController = TextEditingController();
     state._loadNodes(stem['id'] as int); // 줄기 ID에 해당하는 마디 로드
     
     return Column(
@@ -202,24 +205,28 @@ class _StemView extends StatelessWidget {
             return _NodeItem(node: node);
           },
         )),
-      Expanded(flex:1, child:Container(
+
+      Expanded(flex:1, child:Row(children:[Expanded(flex:5, child:Container(
   margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-  padding: EdgeInsets.all(12),
+  padding: EdgeInsets.all(16),
   decoration: BoxDecoration(
-    color: const Color.fromARGB(255, 117, 79, 7), // 원하는 배경색
+    color: const Color.fromARGB(255, 184, 159, 114), // 원하는 배경색
     borderRadius: BorderRadius.circular(12),
   ),
   child:Row(
         children: [Expanded(
+          flex:5,
         child: Text('${stem['entity_number']}-${stem['stem_number']} 개체', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40, color: const Color.fromARGB(255, 218, 241, 221)),),
         ),
       // 오른쪽 삭제 버튼
-      Expanded(child:TextButton.icon(
+      Expanded(flex:1,child:TextButton.icon(
   onPressed: ()async {
       final confirm = await showDialog<bool>(
     context: context,
     barrierDismissible: false, // 바깥 터치로 닫히지 않게
-    builder: (context) => AlertDialog(
+    builder: (context){ return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
       title: Row(
         children: [
           Icon(Icons.warning, color: Colors.red, size: 32),
@@ -227,29 +234,50 @@ class _StemView extends StatelessWidget {
           Text('정말 삭제하시겠습니까?', style: TextStyle(color: Colors.red)),
         ],
       ),
-      content: Text(
+      content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [Text(
         '이 작업은 되돌릴 수 없습니다!\n정말로 ${stem['entity_number']}-${stem['stem_number']} 개체를 삭제하시겠습니까?',
         style: TextStyle(
           color: Colors.red[800],
           fontWeight: FontWeight.bold,
         ),
       ),
+      Text(
+        '농가명($name)을 입력해야 삭제할 수 있습니다.',
+        style: TextStyle(
+          color: Colors.red[800],
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      TextField(
+                  controller: _farmNameController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: name,
+                  ),
+                  onChanged: (value) {
+                    setState((){
+                      isMatched = value == name;});
+                    })])
+                ,
       actions: [
         TextButton(
           child: Text('취소'),
           onPressed: () => Navigator.of(context).pop(false),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
           child: Text('삭제', style: TextStyle(fontWeight: FontWeight.bold)),
-          onPressed: () => Navigator.of(context).pop(true),
+          style: ElevatedButton.styleFrom(
+
+            foregroundColor: isMatched ? Colors.red : Colors.grey,
+          ),
+          
+          onPressed: isMatched?(){Navigator.of(context).pop(true);}:null,
         ),
       ],
-    ),
-  );
+    );},
+  );});
 if (confirm == true) {
 
        final farmInstance = FarmDatabase.instance;
@@ -259,11 +287,36 @@ if (confirm == true) {
 
   },
   icon: Icon(Icons.delete, color: Colors.red, size:30),
-  label: Text('개체삭제', style: TextStyle(color: Colors.red, fontSize:20, fontWeight: FontWeight.bold)),
-))
-        
+  label: Text('개체삭제', style: TextStyle(color: Colors.red, fontSize:30, fontWeight: FontWeight.bold)),
+))]))),
+Expanded(flex:1,child:ElevatedButton.icon(
+        icon: Icon(Icons.add, color: Colors.white),
+        label: Text(
+          '마디조사 업로드',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          minimumSize: Size(double.infinity, 48),
+        ),
+        onPressed: () async {}))
+        ,
+        SizedBox(width:16),
+        Expanded(
+          flex:1,child:ElevatedButton.icon(
+        icon: Icon(Icons.add, color: Colors.white),
+        label: Text(
+          '마디조사표',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          minimumSize: Size(double.infinity, 48),
+        ),
+        onPressed: () async {}))
+        ,SizedBox(width:16),
         ],
-      ))),],
+      )),],
     );
   }
 }
