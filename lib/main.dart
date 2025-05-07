@@ -58,7 +58,7 @@ Future<void> initWindows() async {
   await windowManager.ensureInitialized();
 
   const windowOptions = WindowOptions(
-    size: Size(2400, 1200),
+    size: Size(700, 1300),
     minimumSize: Size(800, 160),
     center: true,
     backgroundColor: Color.fromARGB(255, 0, 0, 0),
@@ -69,7 +69,7 @@ Future<void> initWindows() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
-    await windowManager.maximize();
+    //await windowManager.maximize();
   });
 }
 
