@@ -228,6 +228,30 @@ await  MapLauncher.showDirections(
             Padding(
   padding: EdgeInsets.symmetric(horizontal: 40), child:ElevatedButton(
               style: ElevatedButton.styleFrom(
+    backgroundColor: const Color.fromARGB(255, 228, 173, 101),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    ),
+    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    elevation: 3,
+  ),
+              onPressed: () {
+
+              },
+
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
+            crossAxisAlignment: CrossAxisAlignment.center,children:[
+              
+                
+                Icon(Icons.person_search, size:40, color:const Color.fromARGB(255, 44, 22, 122)),
+                SizedBox(width:16),
+                Text("수확조사", style: TextStyle(fontSize:30, color:const Color.fromARGB(255, 44, 22, 122), fontWeight: FontWeight.bold),),]
+            )))),
+            SizedBox(height:16),
+            Expanded(flex:2, child:
+            Padding(
+  padding: EdgeInsets.symmetric(horizontal: 40), child:ElevatedButton(
+              style: ElevatedButton.styleFrom(
     backgroundColor: const Color.fromARGB(255, 210, 240, 210),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),

@@ -15,6 +15,86 @@ class GrowthSurveyScreen extends StatefulWidget {
 class _SurveyScreenState extends State<GrowthSurveyScreen> {
 int _selectedIndex = 0;
 
+void _basicSurvey(BuildContext context, int entityNum, int stemNum) {
+  int currentStep = 0;
+  final _controllers = [
+  TextEditingController(), // 생장길이
+  TextEditingController(), // 화방높이
+  TextEditingController(), // 엽수
+  TextEditingController(), // 엽장
+  TextEditingController(), // 엽폭
+];
+
+final _focusNodes = List.generate(5, (_) => FocusNode());
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          // 각 입력 항목 라벨 및 타입
+          final labels = [
+            '생장길이 (cm)',
+            '화방높이 (cm)',
+            '엽수 (개)',
+            '엽장 (cm)',
+            '엽폭 (cm)',
+          ];
+          final isInt = [false, false, true, false, false];
+
+          return AlertDialog(
+            title: Text('$entityNum-$stemNum 개체 기본조사'),
+            content: TextFormField(
+              controller: _controllers[currentStep],
+              focusNode: _focusNodes[currentStep],
+              keyboardType: isInt[currentStep]
+                  ? TextInputType.number
+                  : TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: labels[currentStep],
+              ),
+              onFieldSubmitted: (_) {
+                if (currentStep < 4) {
+                  setState(() {
+                    currentStep++;
+                  });
+                  FocusScope.of(context).requestFocus(_focusNodes[currentStep]);
+                }
+              },
+            ),
+            actions: [
+              TextButton(
+                child: Text('닫기'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              if (currentStep < 4)
+                TextButton(
+                  child: Text('다음'),
+                  onPressed: () {
+                    setState(() {
+                      currentStep++;
+                    });
+                    FocusScope.of(context).requestFocus(_focusNodes[currentStep]);
+                  },
+                ),
+              TextButton(
+                child: Text('확인'),
+                onPressed: () {
+                  // 데이터 저장 로직
+                  // 예시: var length = double.tryParse(_controllers[0].text);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
 void deleteDialog(SurveyState state) async{{
   bool isMatched = false;
   String name = widget.farm.name;
@@ -153,7 +233,7 @@ _selectedIndex+widget.farm.stem_count<state.stems.length?Expanded(flex:2,child:
         icon: Icon(Icons.delete, color: const Color.fromARGB(255, 138, 37, 37)),
         label: Text(
           '개체삭제',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: const Color.fromARGB(255, 97, 15, 15)),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: const Color.fromARGB(255, 97, 15, 15)),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 234, 240, 183),
@@ -168,7 +248,7 @@ _selectedIndex+widget.farm.stem_count<state.stems.length?Expanded(flex:2,child:
         icon: Icon(Icons.add, color: const Color.fromARGB(255, 138, 37, 37)),
         label: Text(
           '개체추가',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: const Color.fromARGB(255, 97, 15, 15)),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: const Color.fromARGB(255, 97, 15, 15)),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 234, 240, 183),
@@ -264,7 +344,7 @@ class SurveyState with ChangeNotifier {
   Future<void> updateNodeStatus(int nodeId, String newStatus) async {
     final db = FarmDatabase.instance;
     await db.updateNodeStatus(nodeId, newStatus);
-    await _loadNodes(stems.first['id'] as int); // 데이터 다시 불러오기
+    // await _loadNodes(stems.first['id'] as int); // 데이터 다시 불러오기
     notifyListeners();
   }
   Future<void> _loadStems() async {
@@ -359,25 +439,40 @@ class _StemView extends StatelessWidget {
             final node = state.nodes[index];
             return _NodeItem(node: node);
           },
-        )),
+        )
+        ),
 
-      Expanded(flex:1, child:Row(children:[Expanded(flex:3, child:Container(
+      Expanded(flex:1, child:Row(children:[
+        SizedBox(width:8),
+        Expanded(flex:2,child:ElevatedButton.icon(
+        icon: Icon(Icons.assignment, color: const Color.fromARGB(255, 119, 41, 96)),
+        label: Text(
+          '기본조사',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 220, 233, 175),
+          minimumSize: Size(double.infinity, 48),
+        ),
+        onPressed: () async {}))
+        ,
+        Expanded(flex:3, child:Container(
   margin: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
   padding: EdgeInsets.all(20),
   decoration: BoxDecoration(
-    color: const Color.fromARGB(255, 184, 159, 114), // 원하는 배경색
+    color: const Color.fromARGB(255, 90, 73, 42), // 원하는 배경색
     borderRadius: BorderRadius.circular(12),
   ),
 child:Expanded(
           flex:2,
-        child: Text('${stem['entity_number']}-${stem['stem_number']} 개체', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40, color: const Color.fromARGB(255, 218, 241, 221)),),
-        ))),
+        child: Center(child:Text('${stem['entity_number']}-${stem['stem_number']} 개체', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40, color: const Color.fromARGB(255, 255, 255, 255)),),
+        )))),
       // 오른쪽 삭제 버튼
 Expanded(flex:2,child:ElevatedButton.icon(
         icon: Icon(Icons.add, color: Colors.white),
         label: Text(
           '마디조사 업로드',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 141, 216, 144),
@@ -385,7 +480,7 @@ Expanded(flex:2,child:ElevatedButton.icon(
         ),
         onPressed: () async {}))
         ,
-        SizedBox(width:16),
+        SizedBox(width:8),
         Expanded(
           flex:2,child:ElevatedButton.icon(
         icon: Icon(Icons.add, color: Colors.white),
@@ -398,7 +493,7 @@ Expanded(flex:2,child:ElevatedButton.icon(
           minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {}))
-        ,SizedBox(width:16),
+        ,SizedBox(width:8),
         ],
       ))]);}}
 
@@ -412,14 +507,15 @@ class _NodeItem extends StatelessWidget {
     final state = context.read<SurveyState>();
     final screenHeight = MediaQuery.of(context).size.height;
     final List<String> statuses = ['개화', '착과', '열매', '수확', '낙과'];
+    String status=node['status'] ?? '개화';
     return Container(
-  height: screenHeight / 5, // ListTile의 높이에 맞게 지정
+  height: screenHeight / 6, // ListTile의 높이에 맞게 지정
   decoration: BoxDecoration(
     image: DecorationImage(
-      image: AssetImage('assets/paprika_flower.png'), // 에셋 이미지 경로
+      image: _getStatusImage(status), // 에셋 이미지 경로
       fit: BoxFit.cover, // 전체를 채우도록
     ),
-    borderRadius: BorderRadius.circular(12), // Card 스타일을 원하면
+    borderRadius: BorderRadius.circular(0), // Card 스타일을 원하면
   ),child:ListTile(
     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       title: Row(
@@ -453,9 +549,10 @@ class _NodeItem extends StatelessWidget {
             onChanged: (value) async {
               if (value == null) return;
               await state.updateNodeStatus(node['id'], value);
+              status=value;
             },
           ),
-          Text(status, style: TextStyle(fontSize: 16)),
+          Text(status, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 11, 65, 19))),
         ],
       );
     }).toList(),
@@ -466,13 +563,7 @@ class _NodeItem extends StatelessWidget {
   }
 
   ImageProvider _getStatusImage(String status) {
-    switch(status) {
-      case '개화': return const AssetImage('assets/node_flower.png');
-      case '착과': return const AssetImage('assets/node_smallfruit.png');
-      case '수확': return const AssetImage('assets/node_harvest.png');
-      case '열매': return const AssetImage('assets/node_fruit.png');
-      default: return const AssetImage('assets/no_fruit.png');
-    }
+       return AssetImage("assets/paprika_$status.png");
   }
 }
 
