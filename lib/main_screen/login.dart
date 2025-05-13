@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'android_screen.dart';
 import 'package:provider/provider.dart';
 import '../provider.dart' as provider;
+import 'entername.dart';
 
 class LoginScreen extends StatelessWidget {
   Future<void> _signInWithGoogle(BuildContext context) async {
@@ -25,7 +26,7 @@ class LoginScreen extends StatelessWidget {
       // 로그인 성공 시 AndroidMainScreen으로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => AndroidMainScreen()),
+        MaterialPageRoute(builder: (context) => EnterNameScreen()),
       );
     } catch (e) {
       print("Google 로그인 오류: $e");

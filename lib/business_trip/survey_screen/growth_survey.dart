@@ -1,6 +1,6 @@
 import '../crop_photo.dart';
 import 'package:flutter/material.dart';
-import '../../database.dart';
+import '../../../database/database.dart';
 import 'package:provider/provider.dart';
 import '../../appbar.dart';
 

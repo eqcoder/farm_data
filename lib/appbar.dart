@@ -16,13 +16,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         titleTextStyle: Theme.of(context).textTheme.titleLarge,
         actions: [
           IconButton(
-            icon: const Icon(Icons.close),
-            color:Colors.white,
-            onPressed: () {
-              windowManager.close();
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.settings),
             color: const Color.fromARGB(255, 243, 235, 235),
             onPressed: () => showDialog(

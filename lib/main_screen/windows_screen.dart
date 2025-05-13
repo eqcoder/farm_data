@@ -1,5 +1,5 @@
 import 'package:farm_data/business_trip/business_trip_screen.dart';
-import 'package:farm_data/database.dart';
+import '../database/database.dart';
 import 'package:farm_data/extract_data/main_screen.dart';
 import 'package:farm_data/farm_info/farm_info_screen.dart';
 import 'package:flutter/material.dart';

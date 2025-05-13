@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import '../gdrive/gdrive.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../database.dart';
+import '../../database/database.dart';
 import 'dart:convert';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
