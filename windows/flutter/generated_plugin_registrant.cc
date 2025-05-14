@@ -7,6 +7,10 @@
 #include "generated_plugin_registrant.h"
 
 #include <camera_windows/camera_windows.h>
+<<<<<<< HEAD
+=======
+#include <cloud_firestore/cloud_firestore_plugin_c_api.h>
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 #include <desktop_window/desktop_window_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <firebase_auth/firebase_auth_plugin_c_api.h>
@@ -22,6 +26,11 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   CameraWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CameraWindows"));
+<<<<<<< HEAD
+=======
+  CloudFirestorePluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("CloudFirestorePluginCApi"));
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   DesktopWindowPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("DesktopWindowPlugin"));
   FileSelectorWindowsRegisterWithRegistrar(

@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../database.dart';
+=======
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import '../../database/database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 
 class FarmInfoScreen extends StatefulWidget {
   @override
@@ -143,7 +151,11 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   }
 
   _saveFarm() async {
+<<<<<<< HEAD
     String name = _nameController.text;
+=======
+    String farmName = _nameController.text;
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     String crop = _crop!;
     String address = _addressController.text;
     String city= _extractCity(address);
@@ -151,6 +163,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     final farmInstance =await FarmDatabase.instance;
     if (selectedFarm == null) {
       // 새로운 농가 추가
+<<<<<<< HEAD
       Farm newFarm = Farm(name: name, crop: crop, address: address, city:city, stem_count: stem_count, survey_photos: null);
       int farmId= await farmInstance.insertFarm(newFarm);
       
@@ -167,6 +180,45 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
         survey_photos: selectedFarm!.survey_photos,
       );
       await farmInstance.updateFarm(updatedFarm);
+=======
+       final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final farmRef = FirebaseFirestore.instance.collection('farms').doc();
+  
+  // 기본 데이터 저장
+  await farmRef.set({
+    'ownerId': user.uid,
+    'farmName': farmName,
+    'crop': crop,
+    'stem_count': stem_count,
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+
+  // 기본 개체(1번) 생성
+  final individualRef = farmRef.collection('individuals').doc('1');
+
+  // stem_count만큼 줄기 생성
+  for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
+    final stemRef = individualRef.collection('stems').doc(stemNum.toString());
+    await stemRef.set({
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 각 줄기에 기본 마디(1번) 생성
+    final nodeRef = stemRef.collection('nodes').doc('1');
+    await nodeRef.set({
+      'status': '개화',
+      'flower': '',
+      'set':'',
+      'fruit':'',
+      'harvest':'',
+      'fallen':''
+    });
+  }
+}
+     else {
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     }
 
     _loadFarms(); // 데이터 다시 로드

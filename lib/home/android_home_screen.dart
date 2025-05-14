@@ -3,15 +3,26 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../setting.dart';
 import '../provider.dart';
 import 'package:provider/provider.dart';
+<<<<<<< HEAD
 import '../main_screen/login.dart';
 import 'package:one_clock/one_clock.dart';
+=======
+import 'package:firebase_auth/firebase_auth.dart';
+import '../main_screen/login.dart';
+import 'package:one_clock/one_clock.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 
 
 class AndroidHomeScreen extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final user = Provider.of<AuthProvider>(context).user;
+=======
+    final user = FirebaseAuth.instance.currentUser;
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     return Scaffold(
       body: Center(child:Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -39,7 +50,15 @@ class AndroidHomeScreen extends StatelessWidget {
                   Expanded(flex:2, child:Text('${user?.displayName ?? ''} 조사원님 반갑습니다.', style: TextStyle(fontSize: 30, color:const Color.fromARGB(255, 20, 90, 55), fontWeight: FontWeight.bold),),
                   ), Expanded(flex:2, child:ElevatedButton.icon(
   onPressed: () async{
+<<<<<<< HEAD
     Provider.of<AuthProvider>(context, listen: false).signOut();
+=======
+  // Firebase 로그아웃
+  await FirebaseAuth.instance.signOut();
+  // 구글 계정 로그아웃
+  await GoogleSignIn().signOut();
+
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => LoginScreen()),

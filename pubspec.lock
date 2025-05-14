@@ -137,6 +137,33 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.2"
+<<<<<<< HEAD
+=======
+  cloud_firestore:
+    dependency: "direct main"
+    description:
+      name: cloud_firestore
+      sha256: "6ca737017131a77940fdcca3e13bf6efb5633d50b83514bba24f5fd68e7f340f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.6.7"
+  cloud_firestore_platform_interface:
+    dependency: transitive
+    description:
+      name: cloud_firestore_platform_interface
+      sha256: "082c9aa0602efc1ee8c44c4e8a29a456b198f79a7f62657df39144c97e364cfb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.6.7"
+  cloud_firestore_web:
+    dependency: transitive
+    description:
+      name: cloud_firestore_web
+      sha256: e1ddeacedd1c5a2e54089bbeb2d95d03b0096eccf8889024598f09f092ed8746
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.4.7"
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   collection:
     dependency: transitive
     description:
@@ -321,6 +348,33 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.22.0"
+<<<<<<< HEAD
+=======
+  firebase_database:
+    dependency: "direct main"
+    description:
+      name: firebase_database
+      sha256: "182ce4713d47ffc5f19a5a7b934867d1fae9c33081febcec8c062cb89fc14652"
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.3.5"
+  firebase_database_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_database_platform_interface
+      sha256: b65f416dd2c8ac2d5322241e5411a24ed3da43d0f38aaf9ab6c211d72e52261b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+5"
+  firebase_database_web:
+    dependency: transitive
+    description:
+      name: firebase_database_web
+      sha256: "5203141fe00a1edfaed5f8e0444b8e4ef807a8ec6eca925621b1cab69b6c06e4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+11"
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   fixnum:
     dependency: transitive
     description:
@@ -716,10 +770,17 @@ packages:
     dependency: "direct main"
     description:
       name: googleapis
+<<<<<<< HEAD
       sha256: "5c9e0f25be1dec13d8d2158263141104c51b5ba83487537c17a2330581e505ee"
       url: "https://pub.dev"
     source: hosted
     version: "14.0.0"
+=======
+      sha256: c2f311bcd1b3e4052234162edc6b626a9013a7e1385d6aad37e9e6a6c5f89908
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.4.0"
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   googleapis_auth:
     dependency: "direct main"
     description:
@@ -728,6 +789,17 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.6.0"
+<<<<<<< HEAD
+=======
+  gsheets:
+    dependency: "direct main"
+    description:
+      name: gsheets
+      sha256: "5730f2585d9df565f1cf54d8c26a3608c2586c5e1797932cb4484d5f1262e85b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   html:
     dependency: transitive
     description:

@@ -4,7 +4,11 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+<<<<<<< HEAD
 import '../database.dart';
+=======
+import '../../database/database.dart';
+>>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
