@@ -22,12 +22,6 @@ import 'package:googleapis_auth/googleapis_auth.dart' as google_auth;
 import 'package:googleapis/drive/v3.dart' as drive;
 
 
-final _googleSignIn = GoogleSignIn(
-  scopes: [
-    drive.DriveApi.driveFileScope,
-    sheets.SheetsApi.spreadsheetsScope,
-  ],
-);
 class AndroidEnterDataLayout extends StatefulWidget {
 
   _AndroidEnterDataWidgetState createState() => _AndroidEnterDataWidgetState();

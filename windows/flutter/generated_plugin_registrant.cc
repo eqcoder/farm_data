@@ -7,14 +7,12 @@
 #include "generated_plugin_registrant.h"
 
 #include <camera_windows/camera_windows.h>
-<<<<<<< HEAD
-=======
 #include <cloud_firestore/cloud_firestore_plugin_c_api.h>
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 #include <desktop_window/desktop_window_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <firebase_auth/firebase_auth_plugin_c_api.h>
 #include <firebase_core/firebase_core_plugin_c_api.h>
+#include <firebase_storage/firebase_storage_plugin_c_api.h>
 #include <flutter_inappwebview_windows/flutter_inappwebview_windows_plugin_c_api.h>
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <geolocator_windows/geolocator_windows.h>
@@ -26,11 +24,8 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   CameraWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CameraWindows"));
-<<<<<<< HEAD
-=======
   CloudFirestorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CloudFirestorePluginCApi"));
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   DesktopWindowPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("DesktopWindowPlugin"));
   FileSelectorWindowsRegisterWithRegistrar(
@@ -39,6 +34,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FirebaseAuthPluginCApi"));
   FirebaseCorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
+  FirebaseStoragePluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FirebaseStoragePluginCApi"));
   FlutterInappwebviewWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterInappwebviewWindowsPluginCApi"));
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(

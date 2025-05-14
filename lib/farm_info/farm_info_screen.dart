@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-
-import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import '../database.dart';
-=======
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../../database/database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
+import '../crop_config/schema.dart' as schema;
+import '../business_trip/survey_screen/growth_survey.dart';
 
 class FarmInfoScreen extends StatefulWidget {
   @override
@@ -18,20 +13,27 @@ class FarmInfoScreen extends StatefulWidget {
 }
 
 class _FarmInfoScreenState extends State<FarmInfoScreen> {
-  List<Farm> farms = [];
-  Farm? selectedFarm;
+  Map<String, dynamic>? selectedFarm;
   final _formKey = GlobalKey<FormState>();
   TextEditingController _nameController = TextEditingController();
   String? _crop;
   int? _selectedStemCount;
   final List<int> _stemCounts = [1, 2, 3];
+  TextEditingController _farmNameController = TextEditingController();
   TextEditingController _cropController = TextEditingController();
   TextEditingController _addressController = TextEditingController();
   int? selectedIndex;
+  String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  List<Map<String, dynamic>> myFarms = [];
+  List<Map<String, dynamic>> managedFarms = [];
+  List<Map<String, dynamic>> allFarms = [];
+
+  bool isLoading = true;
   @override
   void initState() {
     super.initState();
-    _loadFarms();
+    loadFarms();
   }
 
   String _extractCity(String address){
@@ -51,30 +53,56 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   return cityName.substring(0, cityName.length - 1);}
 }
 
-  Future<void> _loadFarms() async {
-    farms = await FarmDatabase.instance.getAllFarms();
-    if(mounted){}
-    setState(() {});
+  Future<void> loadFarms() async {
+    final farmsSnapshot =
+        await FirebaseFirestore.instance.collection('farms').get();
+
+    List<Map<String, dynamic>> all = [];
+    List<Map<String, dynamic>> my = [];
+    List<Map<String, dynamic>> managed = [];
+
+    for (final doc in farmsSnapshot.docs) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      all.add(data);
+
+      if (data['owner'] == uid) {
+        my.add(data);
+      } else if ((data['authorizedUsers'] as List<dynamic>?)?.contains(uid) == true) {
+        managed.add(data);
+      }
+    }
+
+    // 전체 농가: 내가 소유/관리하는 농가를 제외한 나머지
+    final myOrManagedIds = {...my.map((e) => e['id']), ...managed.map((e) => e['id'])};
+    final others = all.where((farm) => !myOrManagedIds.contains(farm['id'])).toList();
+
+    setState(() {
+      myFarms = my;
+      managedFarms = managed;
+      allFarms = others;
+      isLoading = false;
+    });
   }
 
-  _openFarmDialog({Farm? farm}) {
-    final List<String> crops = ["토마토", "파프리카", "사과", "배추", "콩", "옥수수"];
-    if (farm != null) {
-      _nameController.text = farm.name;
-      _crop = farm.crop;
-      _addressController.text = farm.address;
-      selectedFarm = farm;
-    } else {
+  Future<void> deleteFarm(String farmId) async {
+    // Firestore 문서 삭제
+    await FirebaseFirestore.instance.collection('farms').doc(farmId).delete();
+    // Storage 이미지 삭제 (필요 시 추가)
+    await loadFarms(); // 목록 새로고침
+  }
+
+  _openFarmDialog() {
+    final List<String> crops = schema.cropSchema.keys.toList();
       _nameController.clear();
       _addressController.clear();
       selectedFarm = null;
-    }
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(farm == null ? '농가 추가' : '농가 수정'),
+          title: Text('농가 추가'),
           content: Form(
             key: _formKey,
             child: Column(
@@ -142,7 +170,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: Text(farm == null ? '추가' : '수정'),
+              child: Text('추가'),
             ),
           ],
         );
@@ -151,36 +179,12 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   }
 
   _saveFarm() async {
-<<<<<<< HEAD
-    String name = _nameController.text;
-=======
     String farmName = _nameController.text;
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     String crop = _crop!;
     String address = _addressController.text;
     String city= _extractCity(address);
     int stem_count = _selectedStemCount!;
-    final farmInstance =await FarmDatabase.instance;
     if (selectedFarm == null) {
-      // 새로운 농가 추가
-<<<<<<< HEAD
-      Farm newFarm = Farm(name: name, crop: crop, address: address, city:city, stem_count: stem_count, survey_photos: null);
-      int farmId= await farmInstance.insertFarm(newFarm);
-      
-      await farmInstance.addEntity(farmId, stem_count); // 줄기 개수에 따라 엔티티 추가
-    } else {
-      // 기존 농가 수정
-      Farm updatedFarm = Farm(
-        id: selectedFarm!.id,
-        name: name,
-        crop: crop,
-        address: address,
-        city:city,
-        stem_count: stem_count,
-        survey_photos: selectedFarm!.survey_photos,
-      );
-      await farmInstance.updateFarm(updatedFarm);
-=======
        final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
@@ -188,11 +192,15 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   
   // 기본 데이터 저장
   await farmRef.set({
-    'ownerId': user.uid,
+    'owner': user.uid,
+    'authorizedUsers':[],
     'farmName': farmName,
     'crop': crop,
+    'address': address,
+    'city': city,
     'stem_count': stem_count,
     'createdAt': FieldValue.serverTimestamp(),
+    'photosURLs': List.filled((schema.cropSchema[crop] as Map<String, dynamic>)['photosURLs'].length, '')
   });
 
   // 기본 개체(1번) 생성
@@ -209,44 +217,129 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     final nodeRef = stemRef.collection('nodes').doc('1');
     await nodeRef.set({
       'status': '개화',
-      'flower': '',
-      'set':'',
-      'fruit':'',
-      'harvest':'',
-      'fallen':''
+      '개화': null,
+      '착과':null,
+      '열매':null,
+      '수확':null,
+      '낙과과':null
     });
-  }
-}
+  }}
      else {
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
     }
 
-    _loadFarms(); // 데이터 다시 로드
+    loadFarms(); // 데이터 다시 로드
   }
 
-  _deleteFarm(BuildContext context) async{
-    await FarmDatabase.instance.deleteData(selectedFarm!.id!);
-    Navigator.pop(context, true);
-  }
 
   _confirmDelete(BuildContext context) async {
-  final bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('삭제 확인'),
-      content: Text('정말로 ${selectedFarm!.name} 농가를 삭제하시겠습니까?'),
+  void _confirmDeleteFarm(Map<String, dynamic> farm) {
+    String name = farm['farmName'];
+    bool isMatched = false;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.warning, color: Colors.red, size: 32),
+          SizedBox(width: 8),
+          Text('정말 삭제하시겠습니까?', style: TextStyle(color: Colors.red)),
+        ],
+      ),
+      content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [Text(
+        '이 작업은 되돌릴 수 없습니다!\n정말로 ${name} 농가를 삭제하시겠습니까?',
+        style: TextStyle(
+          color: Colors.red[800],
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      Text(
+        '농가명($name)을 입력해야 삭제할 수 있습니다.',
+        style: TextStyle(
+          color: Colors.red[800],
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      TextField(
+                  controller: _farmNameController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: name,
+                  ),
+                  onChanged: (value) {
+                    setState((){
+                      isMatched = value == name;});
+                    })])
+                ,
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('취소')),
-        TextButton(onPressed: () =>_deleteFarm(context), child: Text('확인'))
+        TextButton(
+          child: Text('취소'),
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        ElevatedButton(
+          child: Text('삭제', style: TextStyle(fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+
+            foregroundColor: isMatched ? Colors.red : Colors.grey,
+          ),
+          
+          onPressed: isMatched?(){Navigator.of(context).pop(true);}:null,
+        ),
       ],
     ),
+    );
+  }
+  loadFarms();
+  }
 
-  );
-  _loadFarms();
+  void _showPermissionDialog(Map<String, dynamic> farm) {
+    // 권한 부여 로직 구현 (Firestore의 authorizedUsers 필드 업데이트)
+  }
+
+
+  Widget buildDataTable(String title, List<Map<String, dynamic>> farms) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('농가명')),
+              DataColumn(label: Text('작물')),
+              DataColumn(label: Text('줄기개수')),
+              DataColumn(label: Text('주소')),
+              DataColumn(label: Text('담당자')),
+            ],
+            rows: farms.map((farm) {
+              return DataRow(
+                selected: selectedFarm?['id'] == farm['id'],
+                onSelectChanged: (selected) {
+                            setState(() {
+                              selectedFarm = selected! ? farm : null;
+                            });
+                          },
+                cells: [
+                  DataCell(Text(farm['farmName'] ?? '')),
+                  DataCell(Text(farm['crop'] ?? '')),
+                  DataCell(Text(farm['stem_count']?.toString() ?? '')),
+                  DataCell(Text(farm['address'] ?? '')),
+                  DataCell(Text(farm['owner'] ?? '')), // 담당자: owner UID
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isOwner = selectedFarm?['owner'] == uid;
     return Scaffold(
       body: Column(children:[Spacer(flex:1),Expanded(flex:1, child:Row(
         children: [Spacer(flex:1),
@@ -258,46 +351,39 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
           if (selectedFarm != null)
             Expanded(flex:5, child:ElevatedButton(
               onPressed:
-                  () => _openFarmDialog(farm: selectedFarm!), // 농가 수정 다이얼로그
-              child: Text('정보 수정'),
-            )),Spacer(flex:1),if (selectedFarm != null)Expanded(flex:5, child:ElevatedButton(
+                  () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => GrowthSurveyScreen(farm:selectedFarm!),
+                  ),
+                ),// 농가 수정 다이얼로그
+              child: Text('개체정보'),
+            )),Spacer(flex:1),
+            if (selectedFarm != null)Expanded(flex:5, child:ElevatedButton(
               onPressed:
-                  () => _confirmDelete(context), // 농가 수정 다이얼로그
+                  () => _confirmDelete(context),
               child: Text('농가 삭제'),
-            )),Spacer(flex:1)]),),
+            ))
+            ,Spacer(flex:1),
+            if (selectedFarm != null&&isOwner)Expanded(flex:5, child:ElevatedButton(
+              onPressed:
+                  () => _showPermissionDialog(selectedFarm!),
+              child: Text('권한 부여'),
+            ))]),),
           Expanded(
             flex:30,
-            child: ListView(
-              children: [
-                DataTable(
-                  showCheckboxColumn: false, 
-                  columns: [
-                    DataColumn(label: Text('농가명')),
-                    DataColumn(label: Text('id')),
-                    DataColumn(label: Text('작물')),
-                    DataColumn(label: Text('줄기개수')),
-                    DataColumn(label: Text('주소')),
-                  ],
-                  rows:
-                      farms.asMap().entries.map((entry) {
-                        return DataRow(
-                          selected: selectedIndex == entry.key, // 선택 상태 설정
-                          onSelectChanged: (isSelected) { setState(() {
-      selectedFarm = entry.value;
-      selectedIndex = entry.key;
-    });},
-                          cells: [
-                            DataCell(Text(entry.value.name)),
-                            DataCell(Text(entry.value.id.toString())),
-                            DataCell(Text(entry.value.crop)),
-                            DataCell(Text(entry.value.stem_count.toString())),
-                            DataCell(Text(entry.value.address)),
-                          ],
-                        );
-                      }).toList(),
-                ),
-              ],
-            ),
+            child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildDataTable('my농가', myFarms),
+            buildDataTable('관리중인 농가', managedFarms),
+            buildDataTable('전체농가', allFarms),
+          ],
+        ),
+      ),
+    ),
           ),
         ],
       ),
@@ -305,89 +391,3 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   }
 }
 
-/// 📌 농가 정보 입력/수정 다이얼로그
-class FarmDialog extends StatefulWidget {
-  final Map<String, dynamic>? farm;
-  final Function(Map<String, dynamic>) onSave;
-
-  FarmDialog({this.farm, required this.onSave});
-
-  @override
-  _FarmDialogState createState() => _FarmDialogState();
-}
-
-class _FarmDialogState extends State<FarmDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String? name, crop, address;
-  final List<String> crops = ["토마토", "파프리카", "사과", "배추", "콩"];
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.farm != null) {
-      name = widget.farm!['name'];
-      crop = widget.farm!['crop'];
-      address = widget.farm!['address'];
-    }
-  }
-
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      widget.onSave({
-        'id': widget.farm?['id'],
-        'name': name,
-        'crop': crop,
-        'lastSurveyDate':
-            widget.farm?['lastSurveyDate'] ??
-            DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        'address': address,
-      });
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.farm == null ? "농가 추가" : "농가 수정"),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              initialValue: name,
-              decoration: InputDecoration(labelText: "농가명"),
-              validator: (value) => value!.isEmpty ? "농가명을 입력하세요" : null,
-              onSaved: (value) => name = value,
-            ),
-            DropdownButtonFormField<String>(
-              value: crop,
-              decoration: InputDecoration(labelText: "작물명"),
-              items:
-                  crops
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-              onChanged: (value) => setState(() => crop = value),
-              validator: (value) => value == null ? "작물명을 선택하세요" : null,
-            ),
-            TextFormField(
-              initialValue: address,
-              decoration: InputDecoration(labelText: "주소"),
-              validator: (value) => value!.isEmpty ? "주소를 입력하세요" : null,
-              onSaved: (value) => address = value,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text("취소"),
-        ),
-        ElevatedButton(onPressed: _save, child: Text("저장")),
-      ],
-    );
-  }
-}

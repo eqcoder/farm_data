@@ -4,14 +4,12 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   camera_windows
-<<<<<<< HEAD
-=======
   cloud_firestore
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
   desktop_window
   file_selector_windows
   firebase_auth
   firebase_core
+  firebase_storage
   flutter_inappwebview_windows
   flutter_secure_storage_windows
   geolocator_windows

@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-<<<<<<< HEAD
-import '../database.dart'; // FarmDatabase 정의 필요
-=======
 import '../../database/database.dart'; // FarmDatabase 정의 필요
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;

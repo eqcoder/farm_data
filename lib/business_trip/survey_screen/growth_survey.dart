@@ -1,15 +1,14 @@
+import 'dart:ffi';
+
 import '../crop_photo.dart';
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import '../../database.dart';
-=======
-import '../../../database/database.dart';
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 import 'package:provider/provider.dart';
 import '../../appbar.dart';
+import '../../database/farm_database.dart';
+import '../../database/database.dart';
 
 class GrowthSurveyScreen extends StatefulWidget {
-  final Farm farm;
+  final Map<String, dynamic> farm;
 
   const GrowthSurveyScreen({super.key, required this.farm});
   @override
@@ -17,7 +16,12 @@ class GrowthSurveyScreen extends StatefulWidget {
 }
 
 class _SurveyScreenState extends State<GrowthSurveyScreen> {
+late Map<String, dynamic> farm;
+late int stem_count;
 int _selectedIndex = 0;
+
+@override
+
 
 void _basicSurvey(BuildContext context, int entityNum, int stemNum) {
   int currentStep = 0;
@@ -101,7 +105,7 @@ final _focusNodes = List.generate(5, (_) => FocusNode());
 
 void deleteDialog(SurveyState state) async{{
   bool isMatched = false;
-  String name = widget.farm.name;
+  String name = farm["name"];
   final stem = state.stems[_selectedIndex];
     final TextEditingController _farmNameController = TextEditingController();
       final confirm = await showDialog<bool>(
@@ -179,12 +183,12 @@ Widget _pageDropdown(SurveyState state) {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children:[
-                _selectedIndex+1>widget.farm.stem_count?Expanded(flex:2,child:
+                _selectedIndex+1>widget.farm["stem_count"]?Expanded(flex:2,child:
       IconButton(
       icon: Icon(Icons.arrow_left, size: 70, color: const Color.fromARGB(255, 11, 65, 19),),
       onPressed: (){
   state.stemPageController.animateToPage(
-    _selectedIndex-widget.farm.stem_count,
+    _selectedIndex-stem_count,
     duration: Duration(milliseconds: 300),
     curve: Curves.easeInOut,
   );
@@ -223,12 +227,12 @@ Widget _pageDropdown(SurveyState state) {
                   }
                 },
       )),
-_selectedIndex+widget.farm.stem_count<state.stems.length?Expanded(flex:2,child:
+_selectedIndex+stem_count<state.stems.length?Expanded(flex:2,child:
         IconButton(
       icon: Icon(Icons.arrow_right, size: 70, color: const Color.fromARGB(255, 11, 65, 19),),
       onPressed: (){
   state.stemPageController.animateToPage(
-    _selectedIndex+widget.farm.stem_count,
+    _selectedIndex+stem_count,
     duration: Duration(milliseconds: 300),
     curve: Curves.easeInOut,
   );
@@ -241,7 +245,6 @@ _selectedIndex+widget.farm.stem_count<state.stems.length?Expanded(flex:2,child:
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 234, 240, 183),
-          minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {
           deleteDialog(state);
@@ -256,7 +259,6 @@ _selectedIndex+widget.farm.stem_count<state.stems.length?Expanded(flex:2,child:
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 234, 240, 183),
-          minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {
           _addStem(state.farmId, state.stems[_selectedIndex]["entity_number"]+1, state);
@@ -271,7 +273,7 @@ void _addStem(int farmId, int entityNum, SurveyState state)async{
       final farmInstance = FarmDatabase.instance;
       await farmInstance.addEntity(farmId, entityNum);
       await state._loadStems();
-      final lastIndex = state.stems.length - widget.farm.stem_count;
+      final lastIndex = state.stems.length - stem_count;
       if (state.stemPageController.hasClients) {
       state.stemPageController.animateToPage(
     lastIndex,
@@ -284,7 +286,7 @@ void _addStem(int farmId, int entityNum, SurveyState state)async{
   Widget build(BuildContext context) {
     
     return ChangeNotifierProvider(
-      create: (_) => SurveyState(farmId: widget.farm.id!),
+      create: (_) => SurveyState(farmId: widget.farm["id"]),
       child: Builder(
     builder: (context) {
       final state = context.watch<SurveyState>();
@@ -456,7 +458,6 @@ class _StemView extends StatelessWidget {
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 220, 233, 175),
-          minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {}))
         ,
@@ -480,7 +481,6 @@ Expanded(flex:2,child:ElevatedButton.icon(
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 141, 216, 144),
-          minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {}))
         ,
@@ -494,7 +494,6 @@ Expanded(flex:2,child:ElevatedButton.icon(
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 131, 209, 134),
-          minimumSize: Size(double.infinity, 48),
         ),
         onPressed: () async {}))
         ,SizedBox(width:8),

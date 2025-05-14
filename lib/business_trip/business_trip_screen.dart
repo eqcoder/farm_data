@@ -4,16 +4,15 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-<<<<<<< HEAD
-import '../database.dart';
-=======
+import 'dart:core';
 import '../../database/database.dart';
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:map_launcher/map_launcher.dart';
 import 'survey_screen/growth_survey.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BusinessTripScreen extends StatefulWidget {
   @override
@@ -22,28 +21,35 @@ class BusinessTripScreen extends StatefulWidget {
 
 class _BusinessTripScreenState extends State<BusinessTripScreen> {
   bool _loadingMap = false;
-  String? selectedFarm;
-  Farm? farm;
+  String selectedFarm="";
   int selectedFarmIndex=0;
   String weatherInfo = "날씨 정보를 불러오는 중...";
   String farmAddress = "서울특별시 중구 세종대로"; // 예제 주소 (실제 데이터 사용 가능)
+  List<dynamic> farmList = [];
   List<String> farmNames = [];
+  Map<String, dynamic> farm=<String, dynamic>{};
+  final uid = FirebaseAuth.instance.currentUser!.uid;
 
   @override
   void initState() {
     super.initState();
-    _loadFarmNames();
+    _loadMyFarms();
   }
 
-  Future<void> _loadFarmNames() async {
-    farmNames = await FarmDatabase.instance.getFarmNames();
-    if (farmNames.isNotEmpty) {
-      selectedFarm = farmNames.first;
-      final _farm= await FarmDatabase.instance.getFarmByName(selectedFarm!);
-      setState(() {
-      farm=_farm;
+  Future<void> _loadMyFarms() async {
+    final farmsQuery = FirebaseFirestore.instance.collection('farms').where(
+  Filter.or(
+    Filter('owner', isEqualTo: uid),
+    Filter('authorizedUsers', arrayContains: uid)
+  ));
+  final farmsSnapshot = await farmsQuery.get();
+  setState(() {
+      farmList = farmsSnapshot.docs; // ③ setState로 값 대입
+      farmNames=farmList
+    .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String?)
+    .whereType<String>()
+    .toList();
     });
-    }
 
   }
 
@@ -93,7 +99,7 @@ await  MapLauncher.showDirections(
   Widget build(BuildContext context) {
      final double screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      body: selectedFarm==null?Center(child:Text("농가정보를 추가해주세요")):Column(
+      body: selectedFarm==""?Center(child:Text("농가정보를 추가해주세요")):Column(
           mainAxisAlignment: MainAxisAlignment.center, // 세로축 중앙 정렬
             crossAxisAlignment: CrossAxisAlignment.center, 
           children: [
@@ -117,13 +123,11 @@ await  MapLauncher.showDirections(
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () async{
-                        
-                        final _farm=await FarmDatabase.instance.getFarmByName(farmNames[index]);
 
                       setState((){
                         selectedFarmIndex = index;
                         selectedFarm=farmNames[selectedFarmIndex];
-                        farm=_farm;
+                        farm=farmList[selectedFarmIndex].data() as Map<String, dynamic>;
                       });
                     },
                     child: Text(farmNames[index], style: TextStyle(fontSize:20),),
@@ -134,7 +138,7 @@ await  MapLauncher.showDirections(
           ),),
           Spacer(flex:1),
           Expanded(flex:1, child:Text(
-                    '작물: ${farm!.crop}',
+                    '작물: ${farm["crop"]}',
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, color:const Color.fromARGB(255, 11, 128, 30)),
                   )),
                   SizedBox(height:16),
@@ -153,7 +157,7 @@ await  MapLauncher.showDirections(
             Icon(Icons.location_on, color: const Color.fromARGB(255, 95, 16, 42)),
             SizedBox(width: 10),
               Text(
-                '${farm!.address}',
+                '${farm["address"]}',
                 style: TextStyle(fontSize: 16, color: const Color.fromARGB(255, 9, 4, 58), fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -168,7 +172,7 @@ await  MapLauncher.showDirections(
             shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
     ),),
-          onPressed: _loadingMap ? null : ()async{_openNaverMaps(context, farm!.address, "");},
+          onPressed: _loadingMap ? null : ()async{_openNaverMaps(context, farm["address"], "");},
             child:Column(
     mainAxisSize: MainAxisSize.max,
     mainAxisAlignment: MainAxisAlignment.center,
@@ -214,7 +218,7 @@ await  MapLauncher.showDirections(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (BuildContext context) => GrowthSurveyScreen(farm:farm!),
+                    builder: (BuildContext context) => GrowthSurveyScreen(farm:farm),
                   ),
                 );
               },
@@ -266,7 +270,7 @@ await  MapLauncher.showDirections(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (BuildContext context) => CropPhotoScreen(selectedFarm: farm!),
+                    builder: (BuildContext context) => CropPhotoScreen(selectedFarm: farm),
                   ),
                 );
               },

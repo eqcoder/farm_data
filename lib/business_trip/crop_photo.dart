@@ -9,11 +9,7 @@ import 'package:http/http.dart' as http;
 import '../gdrive/gdrive.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-<<<<<<< HEAD
-import '../database.dart';
-=======
 import '../../database/database.dart';
->>>>>>> ec509ac02e3f67dbf917d9324c1461cf57618522
 import 'dart:convert';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -24,12 +20,17 @@ import 'package:provider/provider.dart';
 import '../provider.dart' as provider;
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import '../../crop_config/schema.dart' as schema;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 
 
 
 class CropPhotoScreen extends StatefulWidget {
-  final Farm selectedFarm;
+  final Map<String, dynamic> selectedFarm;
   
 
   const CropPhotoScreen({super.key, required this.selectedFarm});
@@ -40,63 +41,65 @@ class CropPhotoScreen extends StatefulWidget {
 class _CropPhotoState extends State<CropPhotoScreen> {
   bool _isLoading = true; 
   String today=DateFormat('yyyyMMdd').format(DateTime.now());
-  List<String> farmNames=[];
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  late List<CameraDescription> _cameras;
-  late CameraDescription _camera;
-  late FarmDatabase farm;
-  late Database db;
-  late String crop;
-  late String city;
-  late String name;
-  
-  
-  final List<String> imageTitles = [
-    "재배전경",
-    "1-1 개체생장점 사진",
-    "1-1 개체 마디 진행상황",
-    "pH",
-    "백엽상 내부",
-    "온습도",
-    "1 개체 근권부 사진(좌)",
-    "1개체 근권부 사진(우)",
-    "특이사항",
-  ]; // DB에서 불러올 값
-  List<File?> _photos = List.generate(9, (_) => null);
- @override
-  void initState() {
+  late Map<String, dynamic> selectedFarm;
+  late List<dynamic> photosURLs;
+  late List<File?> _photos;
+  late DocumentReference<Map<String, dynamic>> farmRef;
+  late List<String> imageTitles;
+  late int imageNum;
+  String crop="";
+  String city="";
+  String name="";
+  String id="";
+  @override
+  void initState() async{
     super.initState();
-    farm=FarmDatabase.instance;
-    getPhotos();
+    selectedFarm = widget.selectedFarm;
+    id=widget.selectedFarm["id"];
+  name=widget.selectedFarm["name"];
+  crop=widget.selectedFarm["crop"];
+  imageTitles=(schema.cropSchema[crop] as Map<String, dynamic>)["imageTitles"];
+  imageNum=imageTitles.length;
+  city=widget.selectedFarm["city"];
+  final farmRef = FirebaseFirestore.instance.collection('farms').doc(id);
+  final farmDoc = await farmRef.get();
+  photosURLs = (farmDoc.data()?['photosURLs'] ?? []).toList();
+  _photos=await getPhotos();
+  }
+  
+  
+  
+  
+  
+  Future<List<File?>> getPhotos() async {
+  
+  final List<File?> files = [];
+  final cacheManager = DefaultCacheManager();
 
-  }
-  
-  Future<void> getPhotos() async {
-    db = await farm.database;
-    List<Map<String, dynamic>> tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
-  
-  for (var table in tables) {
-    String tableName = table['name'];
-    print('테이블 이름: $tableName');
-    List<Map<String, dynamic>> rows = await db.query(tableName);
-    print('테이블 $tableName 내용: $rows');
-  }
-  name=widget.selectedFarm.name.toString();
-  crop=widget.selectedFarm.crop.toString();
-  city=widget.selectedFarm.city.toString();
-  if(widget.selectedFarm.survey_photos!=null){
-    List<String?> fileList=List<String?>.from(jsonDecode(widget.selectedFarm.survey_photos as String));
-    setState(() {
+  for (String url in photosURLs) {
+    try {
+      // 1. 캐시에서 파일 확인
+      final cachedFile = await cacheManager.getFileFromCache(url);
       
-    _photos=fileList.map((path) {
-    return path != null ? File(path) : null; // null이면 그대로 유지, 아니면 File 객체 생성
-  }).toList();
-   }); // 에러 발생 시 빈 리스트를 반환하거나 에러 처리를 수행할 수 있습니다.
+      if (cachedFile != null) {
+        // 캐시된 파일이 있으면 사용
+        files.add(cachedFile.file);
+      } else {
+        // 2. 캐시 없으면 다운로드 및 캐시 저장
+        final file = await cacheManager.getSingleFile(url);
+        files.add(file);
+      }
+    } catch (e) {
+      // 에러 발생 시 null 추가
+      files.add(null);
+    }
   }
+
+
   setState(() {
       _isLoading = false; // 초기화 완료 후 로딩 상태 변경
     });
+    return files;
   }
   Future<File?> _compressImage(File file) async {
   final targetPath = "${file.parent.path}/compressed_${file.uri.pathSegments.last}";
@@ -116,6 +119,37 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   return null; // 압축 실패 시 null 반환
 }
 
+
+  Future<void> uploadFarmImage({
+  required File imageFile,
+  required int index,
+}) async {
+  try {
+    // 1. Storage에 업로드할 경로 지정
+    final String fileName = '${today}_${city}_${crop}_${name}_${imageTitles[index]}.jpg';
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('farms/$id/$fileName');
+
+    // 2. 파일 업로드 (contentType 지정 권장)
+    final uploadTask = await storageRef.putFile(
+      imageFile,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+
+    // 3. 업로드된 파일의 다운로드 URL 가져오기
+    final photoUrl = await storageRef.getDownloadURL();
+
+    // 4. Firestore에 이미지 URL 저장 (예시: farms 컬렉션의 farmId 문서에 배열로 추가)
+    
+  photosURLs[index] = photoUrl;
+  await farmRef.update({'photosURLs': photosURLs});
+
+  } catch (e) {
+    print('이미지 업로드 실패: $e');
+    return null;
+  }
+}
   Future<void> _takePhoto(int index) async {
   final ImagePicker _picker = ImagePicker();
   final XFile? pickedFile = await _picker.pickImage(source:ImageSource.camera);
@@ -153,12 +187,16 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         final result = await SaverGallery.saveImage(
           _photos[index]!.readAsBytesSync(),
           quality: 97, // 이미지 품질 (JPEG만 해당)
-          fileName: '${today}_${city}_${crop}_${widget.selectedFarm}_${imageTitles[index]}.jpg', // 파일 이름
+          fileName: '${today}_${city}_${crop}_${name}_${imageTitles[index]}.jpg', // 파일 이름
           androidRelativePath: "Pictures/${today}_${city}_${widget.selectedFarm}/", // 갤러리 내 폴더 경로
           skipIfExists: false
         );
-  farm.updateSurveyPhotos(widget.selectedFarm.id!, _photos.map((file){return  file?.path;}).toList());
+  uploadFarmImage(imageFile: _photos[index]!, index:index,);
   }
+
+  
+
+
   }
   
 
@@ -224,9 +262,23 @@ Future<void> uploadToGoogleDrive(BuildContext context) async {
     );
 }
 
-_deleteImages(){
+Future<void> _deleteImages()async{
+   final storage = FirebaseStorage.instance;
+    final List<Future<void>> deleteFutures = [];
+    
+    for (final url in photosURLs) {
+      try {
+        final ref = storage.refFromURL(url);
+        deleteFutures.add(ref.delete());
+      } catch (e) {
+        print('$url 삭제 실패: $e');
+      }
+    }
+    await Future.wait(deleteFutures);
+    await farmRef.update({'photosURLs': []});
   setState(() {
-    _photos=List.generate(9, (_) => null);
+    _photos=List.generate(imageNum, (_) => null);
+
   });
 }
 
@@ -275,7 +327,7 @@ Container(
         mainAxisSpacing: 0, // 행 
         childAspectRatio: 0.6,
               ),
-              itemCount: 9,
+              itemCount: imageNum,
               itemBuilder: (context, index) {
                 
                 return Column(
