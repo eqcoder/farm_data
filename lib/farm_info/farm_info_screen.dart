@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../crop_config/schema.dart' as schema;
 import '../business_trip/survey_screen/growth_survey.dart';
+import '../provider.dart';
 
 class FarmInfoScreen extends StatefulWidget {
   @override
@@ -23,7 +24,9 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   TextEditingController _cropController = TextEditingController();
   TextEditingController _addressController = TextEditingController();
   int? selectedIndex;
-  String uid = FirebaseAuth.instance.currentUser!.uid;
+  late String uid;
+  late DocumentReference<Map<String, dynamic>> userRef;
+  late DocumentReference<Map<String, dynamic>> farmRef;
 
   List<Map<String, dynamic>> myFarms = [];
   List<Map<String, dynamic>> managedFarms = [];
@@ -34,6 +37,9 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   void initState() {
     super.initState();
     loadFarms();
+    uid = FirebaseAuth.instance.currentUser!.uid;
+    userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    farmRef = FirebaseFirestore.instance.collection('farms').doc();
   }
 
   String _extractCity(String address){
@@ -66,12 +72,18 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       data['id'] = doc.id;
       all.add(data);
 
-      if (data['owner'] == uid) {
-        my.add(data);
-      } else if ((data['authorizedUsers'] as List<dynamic>?)?.contains(uid) == true) {
-        managed.add(data);
-      }
-    }
+      final ownerRef = data['owner'] as DocumentReference;
+  final authorizedRefs = (data['authorizedUsers'] as List<dynamic>?)?.cast<DocumentReference>() ?? [];
+
+  // 1. 소유주 확인 (DocumentReference의 ID가 현재 UID와 같은지)
+  if (ownerRef.id == uid) {
+    my.add(data);
+  } 
+  // 2. 권한 유저 확인 (DocumentReference 리스트의 ID 중에 현재 UID가 있는지)
+  else if (authorizedRefs.any((ref) => ref.id == uid)) {
+    managed.add(data);
+  }
+}
 
     // 전체 농가: 내가 소유/관리하는 농가를 제외한 나머지
     final myOrManagedIds = {...my.map((e) => e['id']), ...managed.map((e) => e['id'])};
@@ -185,14 +197,12 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     String city= _extractCity(address);
     int stem_count = _selectedStemCount!;
     if (selectedFarm == null) {
-       final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
 
-  final farmRef = FirebaseFirestore.instance.collection('farms').doc();
+  
   
   // 기본 데이터 저장
   await farmRef.set({
-    'owner': user.uid,
+    'owner': FirebaseFirestore.instance.collection('users').doc(uid),
     'authorizedUsers':[],
     'farmName': farmName,
     'crop': crop,
@@ -215,14 +225,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
     // 각 줄기에 기본 마디(1번) 생성
     final nodeRef = stemRef.collection('nodes').doc('1');
-    await nodeRef.set({
-      'status': '개화',
-      '개화': null,
-      '착과':null,
-      '열매':null,
-      '수확':null,
-      '낙과과':null
-    });
+    await nodeRef.set((schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'] );
   }}
      else {
     }
@@ -232,8 +235,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
 
   _confirmDelete(BuildContext context) async {
-  void _confirmDeleteFarm(Map<String, dynamic> farm) {
-    String name = farm['farmName'];
+    String name = selectedFarm!['farmName'];
     bool isMatched = false;
     showDialog(
       context: context,
@@ -248,7 +250,7 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [Text(
-        '이 작업은 되돌릴 수 없습니다!\n정말로 ${name} 농가를 삭제하시겠습니까?',
+        '이 작업은 되돌릴 수 없습니다!\n정말로 $name 농가를 삭제하시겠습니까?',
         style: TextStyle(
           color: Colors.red[800],
           fontWeight: FontWeight.bold,
@@ -289,13 +291,29 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       ],
     ),
     );
-  }
   loadFarms();
   }
+  
 
-  void _showPermissionDialog(Map<String, dynamic> farm) {
-    // 권한 부여 로직 구현 (Firestore의 authorizedUsers 필드 업데이트)
+
+  void _showPermissionDialog(Map<String, dynamic> selectedFarm)  async{
+    final farmRef = FirebaseFirestore.instance.collection('farms').doc(selectedFarm["id"]);
+    final farmSnap = await farmRef.get();
+    List<DocumentReference<Map<String, dynamic>>> authorizedRefs = 
+    (farmSnap['authorizedUsers'] as List<dynamic>?)?.cast<DocumentReference<Map<String, dynamic>>>() ?? [];
+    Set<String> authorizedUids = authorizedRefs.map((ref) => ref.id).toSet();
+  
+    await showDialog(
+    context: context,
+    builder: (context) => PermissionManagementDialog(
+      farmRef: farmRef,
+      authorizedUids: authorizedUids,
+      onUpdate: loadFarms,
+    ),
+  );
   }
+
+  
 
 
   Widget buildDataTable(String title, List<Map<String, dynamic>> farms) {
@@ -388,6 +406,147 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
         ],
       ),
     );
+  }
+}
+
+class PermissionManagementDialog extends StatefulWidget {
+  final DocumentReference farmRef;
+  final Set<String> authorizedUids;
+  final VoidCallback onUpdate;
+  
+
+  const PermissionManagementDialog({
+    required this.farmRef,
+    required this.authorizedUids,
+    required this.onUpdate,
+  });
+
+  
+
+  @override
+  _PermissionManagementDialogState createState() => _PermissionManagementDialogState();
+}
+
+class _PermissionManagementDialogState extends State<PermissionManagementDialog> {
+  late List<Map<String, dynamic>> _allUsers;
+  late Set<String> _selectedToAdd;
+  late Set<String> _selectedToRemove;
+  late String uid;
+  late DocumentReference<Map<String, dynamic>> userRef;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedToAdd = Set();
+    _selectedToRemove = Set();
+    _loadUsers();
+    uid = FirebaseAuth.instance.currentUser!.uid;
+    userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+  }
+  Future<List<Map<String, dynamic>>> fetchAllUsersExceptMe() async {
+  final snapshot = await FirebaseFirestore.instance.collection('users').get();
+  return snapshot.docs
+      .where((doc) => doc.id != uid)
+      .map((doc) => doc.data()..['uid'] = doc.id)
+      .toList();
+}
+
+  Future<void> _loadUsers() async {
+    _allUsers = await fetchAllUsersExceptMe();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authorized = _allUsers.where((u) => widget.authorizedUids.contains(u['uid'])).toList();
+    final unauthorized = _allUsers.where((u) => !widget.authorizedUids.contains(u['uid'])).toList();
+
+    return AlertDialog(
+      title: Text('권한 관리'),
+      content: SizedBox(
+        width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          children: [
+            _buildUserSection('권한 있는 유저', authorized, _selectedToRemove, true),
+            Divider(),
+            _buildUserSection('권한 없는 유저', unauthorized, _selectedToAdd, false),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('취소'),
+        ),
+        ElevatedButton(
+          onPressed: _saveChanges,
+          child: Text('저장'),
+        ),
+      ],
+    );
+  }
+  Widget _buildUserSection(String title, List<Map<String, dynamic>> users, Set<String> selectedSet, bool isRemoval) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return CheckboxListTile(
+                  title: Text(user['name'] ?? user['uid']),
+                  value: selectedSet.contains(user['uid']),
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        selectedSet.add(user['uid']);
+                      } else {
+                        selectedSet.remove(user['uid']);
+                      }
+                    });
+                  },
+                  subtitle: Text(isRemoval ? '권한 해제 선택' : '권한 부여 선택'),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveChanges() async {
+    // DocumentReference로 변환
+    final toAddRefs = _selectedToAdd.map((uid) => 
+      FirebaseFirestore.instance.collection('users').doc(uid)).toList();
+      
+    final toRemoveRefs = _selectedToRemove.map((uid) => 
+      FirebaseFirestore.instance.collection('users').doc(uid)).toList();
+
+    final batch = FirebaseFirestore.instance.batch();
+    
+    if (toAddRefs.isNotEmpty) {
+      batch.update(widget.farmRef, {
+        'authorizedUsers': FieldValue.arrayUnion(toAddRefs),
+      });
+    }
+    
+    if (toRemoveRefs.isNotEmpty) {
+      batch.update(widget.farmRef, {
+        'authorizedUsers': FieldValue.arrayRemove(toRemoveRefs),
+      });
+    }
+
+    await batch.commit();
+    widget.onUpdate();
+    Navigator.pop(context);
   }
 }
 

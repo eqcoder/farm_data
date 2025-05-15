@@ -28,12 +28,16 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
   List<dynamic> farmList = [];
   List<String> farmNames = [];
   Map<String, dynamic> farm=<String, dynamic>{};
-  final uid = FirebaseAuth.instance.currentUser!.uid;
+  late String uid;
+  late DocumentReference<Map<String, dynamic>> userRef;
 
   @override
   void initState() {
     super.initState();
+    uid = FirebaseAuth.instance.currentUser!.uid;
+    userRef = FirebaseFirestore.instance.collection('users').doc(uid);
     _loadMyFarms();
+    selectedFarm = farmNames[selectedFarmIndex];
   }
 
   Future<void> _loadMyFarms() async {
@@ -128,6 +132,7 @@ await  MapLauncher.showDirections(
                         selectedFarmIndex = index;
                         selectedFarm=farmNames[selectedFarmIndex];
                         farm=farmList[selectedFarmIndex].data() as Map<String, dynamic>;
+                        farm["id"]=farmList[selectedFarmIndex].id;
                       });
                     },
                     child: Text(farmNames[index], style: TextStyle(fontSize:20),),

@@ -61,7 +61,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   imageTitles=(schema.cropSchema[crop] as Map<String, dynamic>)["imageTitles"];
   imageNum=imageTitles.length;
   city=widget.selectedFarm["city"];
-  final farmRef = FirebaseFirestore.instance.collection('farms').doc(id);
+  farmRef = FirebaseFirestore.instance.collection('farms').doc(id);
   final farmDoc = await farmRef.get();
   photosURLs = (farmDoc.data()?['photosURLs'] ?? []).toList();
   _photos=await getPhotos();
