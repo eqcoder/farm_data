@@ -1,11 +1,6 @@
 import 'crop_photo.dart';
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:path/path.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:core';
-import '../../database/database.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -25,7 +20,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
   int selectedFarmIndex=0;
   String weatherInfo = "날씨 정보를 불러오는 중...";
   String farmAddress = "서울특별시 중구 세종대로"; // 예제 주소 (실제 데이터 사용 가능)
-  List<dynamic> farmList = [];
+  List<Map<String, dynamic>> farmList = [];
   List<String> farmNames = [];
   Map<String, dynamic> farm=<String, dynamic>{};
   late String uid;
@@ -37,24 +32,35 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
     uid = FirebaseAuth.instance.currentUser!.uid;
     userRef = FirebaseFirestore.instance.collection('users').doc(uid);
     _loadMyFarms();
-    selectedFarm = farmNames[selectedFarmIndex];
+    
   }
 
   Future<void> _loadMyFarms() async {
-    final farmsQuery = FirebaseFirestore.instance.collection('farms').where(
-  Filter.or(
-    Filter('owner', isEqualTo: uid),
-    Filter('authorizedUsers', arrayContains: uid)
-  ));
-  final farmsSnapshot = await farmsQuery.get();
+    QuerySnapshot farmSnap = await FirebaseFirestore.instance
+      .collection('farms')
+      .where('owner', isEqualTo: userRef)
+      .get();
   setState(() {
-      farmList = farmsSnapshot.docs; // ③ setState로 값 대입
+      farmList = farmSnap.docs
+    .map((doc){
+      final data=doc.data() as Map<String, dynamic>;
+      return {
+    'id': doc.id, // 문서 ID 추가
+    ...data,      // 나머지 필드
+  };
+    }
+      )
+    .toList();
       farmNames=farmList
-    .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String?)
+    .map((doc) => doc['farmName'] as String?)
     .whereType<String>()
     .toList();
     });
-
+  if(farmNames.isNotEmpty){
+    selectedFarm = farmNames[selectedFarmIndex];
+    farm=farmList[selectedFarmIndex];
+                        farm["id"]=farmList[selectedFarmIndex]["id"];
+    }
   }
 
 Future<void> requestLocationPermission() async {
@@ -131,8 +137,8 @@ await  MapLauncher.showDirections(
                       setState((){
                         selectedFarmIndex = index;
                         selectedFarm=farmNames[selectedFarmIndex];
-                        farm=farmList[selectedFarmIndex].data() as Map<String, dynamic>;
-                        farm["id"]=farmList[selectedFarmIndex].id;
+                        farm=farmList[selectedFarmIndex];
+                        farm["id"]=farmList[selectedFarmIndex]["id"];
                       });
                     },
                     child: Text(farmNames[index], style: TextStyle(fontSize:20),),
@@ -181,7 +187,7 @@ await  MapLauncher.showDirections(
             child:Column(
     mainAxisSize: MainAxisSize.max,
     mainAxisAlignment: MainAxisAlignment.center,
-    children: [Icon(Icons.directions, size:30),
+    children: [Icon(Icons.directions, size:24),
  // 아이콘과 텍스트 사이 간격
       Text('길찾기', style: TextStyle(fontSize: 16)),]),
             
@@ -190,10 +196,10 @@ await  MapLauncher.showDirections(
                   
                   ]))),
                   SizedBox(height:16),
-                  Expanded(flex:10, child:Card(
+                  Expanded(flex:8, child:Card(
                     color: const Color.fromARGB(255, 253, 253, 250),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(10.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,

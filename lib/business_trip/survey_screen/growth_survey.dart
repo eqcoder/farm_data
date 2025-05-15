@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../appbar.dart';
 import '../../database/farm_database.dart';
 import '../../database/database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class GrowthSurveyScreen extends StatefulWidget {
   final Map<String, dynamic> farm;
@@ -17,11 +19,17 @@ class GrowthSurveyScreen extends StatefulWidget {
 
 class _SurveyScreenState extends State<GrowthSurveyScreen> {
 late Map<String, dynamic> farm;
+late DocumentReference<Map<String, dynamic>> farmRef;
 late int stem_count;
 int _selectedIndex = 0;
 
 @override
-
+void initState() {
+    // TODO: implement initState
+    super.initState();
+    farm=widget.farm;
+    farmRef=FirebaseFirestore.instance.collection('farms').doc(farm["id"]);
+  }
 
 void _basicSurvey(BuildContext context, int entityNum, int stemNum) {
   int currentStep = 0;
@@ -105,7 +113,7 @@ final _focusNodes = List.generate(5, (_) => FocusNode());
 
 void deleteDialog(SurveyState state) async{{
   bool isMatched = false;
-  String name = farm["name"];
+  String name = farm["farmName"];
   final stem = state.stems[_selectedIndex];
     final TextEditingController _farmNameController = TextEditingController();
       final confirm = await showDialog<bool>(
@@ -269,7 +277,7 @@ SizedBox(width:16),
 
             ]);}
 
-void _addStem(int farmId, int entityNum, SurveyState state)async{
+void _addStem(String farmId, int entityNum, SurveyState state)async{
       final farmInstance = FarmDatabase.instance;
       await farmInstance.addEntity(farmId, entityNum);
       await state._loadStems();
@@ -319,7 +327,7 @@ void _addStem(int farmId, int entityNum, SurveyState state)async{
 }
 
 class SurveyState with ChangeNotifier {
-  final int farmId;
+  final String farmId;
   final PageController stemPageController = PageController();
   List<Map<String, dynamic>> stems = [];
   List<Map<String, dynamic>> nodes = [];

@@ -5,7 +5,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:7.2.2")
+        classpath("com.android.tools.build:gradle:8.1.0")
     }
 }
 
@@ -22,7 +22,7 @@ subprojects {
             pluginManager.hasPlugin("com.android.library")) {
             
             extensions.configure<BaseExtension> { // BaseExtension으로 캐스팅
-                compileSdkVersion(34) // compileSdkVersion 설정
+                compileSdkVersion(35) // compileSdkVersion 설정
                 buildToolsVersion = "34.0.0" // buildToolsVersion 설정
             }
         }
