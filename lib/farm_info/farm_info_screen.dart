@@ -38,22 +38,21 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     farmRef = FirebaseFirestore.instance.collection('farms').doc();
   }
 
-  String _extractCity(String address){
+  String _extractCity(String address) {
+    // 공백으로 문자열 분리
+    List<String> parts = address.split(' ');
 
-  // 공백으로 문자열 분리
-  List<String> parts = address.split(' ');
-
-  // '군' 또는 '시'로 끝나는 단어 찾기
-  String cityName = parts.firstWhere(
-    (part) => part.endsWith('군') || part.endsWith('시'),
-    orElse: () => '',
-  );
-  if (cityName.isEmpty) {
-    return ""; // '군' 또는 '시'가 없으면 원래 주소 반환
+    // '군' 또는 '시'로 끝나는 단어 찾기
+    String cityName = parts.firstWhere(
+      (part) => part.endsWith('군') || part.endsWith('시'),
+      orElse: () => '',
+    );
+    if (cityName.isEmpty) {
+      return ""; // '군' 또는 '시'가 없으면 원래 주소 반환
+    } else {
+      return cityName.substring(0, cityName.length - 1);
+    }
   }
-  else{
-  return cityName.substring(0, cityName.length - 1);}
-}
 
   Future<void> loadFarms() async {
     final farmsSnapshot =
@@ -69,21 +68,28 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       all.add(data);
 
       final ownerRef = data['owner'] as DocumentReference;
-  final authorizedRefs = (data['authorizedUsers'] as List<dynamic>?)?.cast<DocumentReference>() ?? [];
+      final authorizedRefs =
+          (data['authorizedUsers'] as List<dynamic>?)
+              ?.cast<DocumentReference>() ??
+          [];
 
-  // 1. 소유주 확인 (DocumentReference의 ID가 현재 UID와 같은지)
-  if (ownerRef.id == uid) {
-    my.add(data);
-  } 
-  // 2. 권한 유저 확인 (DocumentReference 리스트의 ID 중에 현재 UID가 있는지)
-  else if (authorizedRefs.any((ref) => ref.id == uid)) {
-    managed.add(data);
-  }
-}
+      // 1. 소유주 확인 (DocumentReference의 ID가 현재 UID와 같은지)
+      if (ownerRef.id == uid) {
+        my.add(data);
+      }
+      // 2. 권한 유저 확인 (DocumentReference 리스트의 ID 중에 현재 UID가 있는지)
+      else if (authorizedRefs.any((ref) => ref.id == uid)) {
+        managed.add(data);
+      }
+    }
 
     // 전체 농가: 내가 소유/관리하는 농가를 제외한 나머지
-    final myOrManagedIds = {...my.map((e) => e['id']), ...managed.map((e) => e['id'])};
-    final others = all.where((farm) => !myOrManagedIds.contains(farm['id'])).toList();
+    final myOrManagedIds = {
+      ...my.map((e) => e['id']),
+      ...managed.map((e) => e['id']),
+    };
+    final others =
+        all.where((farm) => !myOrManagedIds.contains(farm['id'])).toList();
 
     setState(() {
       myFarms = my;
@@ -102,9 +108,9 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
   _openFarmDialog() {
     final List<String> crops = schema.cropSchema.keys.toList();
-      _nameController.clear();
-      _addressController.clear();
-      selectedFarm = null;
+    _nameController.clear();
+    _addressController.clear();
+    selectedFarm = null;
 
     showDialog(
       context: context,
@@ -122,44 +128,47 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   validator: (value) => value!.isEmpty ? '농가명을 입력하세요' : null,
                 ),
                 DropdownButtonFormField<String>(
-              value: _crop,
-              decoration: InputDecoration(labelText: "작물명"),
-              items:
-                  crops
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-              onChanged: (value) => setState(() => _crop = value),
-              validator: (value) => value == null ? "작물명을 선택하세요" : null,
-            ),
-            DropdownButtonFormField<int>(
-  value: _selectedStemCount,
-  decoration: InputDecoration(labelText: '줄기개수'),
-  items: _stemCounts.map((count) {
-    return DropdownMenuItem<int>(
-      value: count,
-      child: Text('$count'),
-    );
-  }).toList(),
-  onChanged: (value) {
-    setState(() {
-      _selectedStemCount = value;
-    });
-  },
-  validator: (value) => value == null ? '줄기개수를 선택하세요' : null,
-),
+                  value: _crop,
+                  decoration: InputDecoration(labelText: "작물명"),
+                  items:
+                      crops
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                  onChanged: (value) => setState(() => _crop = value),
+                  validator: (value) => value == null ? "작물명을 선택하세요" : null,
+                ),
+                DropdownButtonFormField<int>(
+                  value: _selectedStemCount,
+                  decoration: InputDecoration(labelText: '줄기개수'),
+                  items:
+                      _stemCounts.map((count) {
+                        return DropdownMenuItem<int>(
+                          value: count,
+                          child: Text('$count'),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedStemCount = value;
+                    });
+                  },
+                  validator: (value) => value == null ? '줄기개수를 선택하세요' : null,
+                ),
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(labelText: '주소'),
-                  validator: (value)  {
-    if (value == null || value.isEmpty) {
-      return '주소를 입력하세요';
-    }
-    // 시/군/구가 포함되어 있는지 정규식으로 체크 (예시: '시' 또는 '군' 또는 '구'가 포함되어야 함)
-    if (!(value.contains('시') || value.contains('군'))) {
-      return '주소에 시/군/구 정보를 포함해주세요';
-    }
-    return null;
-  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '주소를 입력하세요';
+                    }
+                    // 시/군/구가 포함되어 있는지 정규식으로 체크 (예시: '시' 또는 '군' 또는 '구'가 포함되어야 함)
+                    if (!(value.contains('시') || value.contains('군'))) {
+                      return '주소에 시/군/구 정보를 포함해주세요';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
@@ -190,181 +199,201 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     String farmName = _nameController.text;
     String crop = _crop!;
     String address = _addressController.text;
-    String city= _extractCity(address);
+    String city = _extractCity(address);
     int stem_count = _selectedStemCount!;
     if (selectedFarm == null) {
+      // 기본 데이터 저장
+      await farmRef.set({
+        'owner': FirebaseFirestore.instance.collection('users').doc(uid),
+        'authorizedUsers': [],
+        'farmName': farmName,
+        'crop': crop,
+        'address': address,
+        'city': city,
+        'stem_count': stem_count,
+        'createdAt': FieldValue.serverTimestamp(),
+        'photosURLs': List.filled(
+          (schema.cropSchema[crop] as Map<String, dynamic>)['이미지제목'].length,
+          '',
+        ),
+      });
 
-  
-  
-  // 기본 데이터 저장
-  await farmRef.set({
-    'owner': FirebaseFirestore.instance.collection('users').doc(uid),
-    'authorizedUsers':[],
-    'farmName': farmName,
-    'crop': crop,
-    'address': address,
-    'city': city,
-    'stem_count': stem_count,
-    'createdAt': FieldValue.serverTimestamp(),
-    'photosURLs': List.filled((schema.cropSchema[crop] as Map<String, dynamic>)['이미지제목'].length, '')
-  });
+      // 기본 개체(1번) 생성
+      final individualRef = farmRef.collection('개체').doc('1');
 
-  // 기본 개체(1번) 생성
-  final individualRef = farmRef.collection('개체').doc('1');
+      // stem_count만큼 줄기 생성
+      for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
+        final stemRef = individualRef.collection('줄기').doc(stemNum.toString());
+        await stemRef.set({'createdAt': FieldValue.serverTimestamp()});
 
-  // stem_count만큼 줄기 생성
-  for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
-    final stemRef = individualRef.collection('stems').doc(stemNum.toString());
-    await stemRef.set({
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // 각 줄기에 기본 마디(1번) 생성
-    final nodeRef = stemRef.collection('nodes').doc('1');
-    await nodeRef.set((schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'] );
-  }}
-     else {
-    }
+        // 각 줄기에 기본 마디(1번) 생성
+        final nodeRef = stemRef.collection('마디').doc('1');
+        final Map<String, dynamic> nodeData = {
+          ...(schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'],
+          '번호': nodeRef.id,
+        };
+        await nodeRef.set(nodeData);
+      }
+    } else {}
 
     loadFarms(); // 데이터 다시 로드
   }
 
-
   _confirmDelete(BuildContext context) async {
     String name = selectedFarm!['farmName'];
     bool isMatched = false;
-    final confirm =await showDialog<bool>(
-    context: context,
-    barrierDismissible: false, // 바깥 터치로 닫히지 않게
-    builder: (context){ return StatefulBuilder(
-        builder: (context, setState) {return AlertDialog(
-      title: Row(
-        children: [
-          Icon(Icons.warning, color: Colors.red, size: 32),
-          SizedBox(width: 8),
-          Text('정말 삭제하시겠습니까?', style: TextStyle(color: Colors.red)),
-        ],
-      ),
-      content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [Text(
-        '이 작업은 되돌릴 수 없습니다!\n정말로 $name 농가를 삭제하시겠습니까?',
-        style: TextStyle(
-          color: Colors.red[800],
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      Text(
-        '농가명($name)을 입력해야 삭제할 수 있습니다.',
-        style: TextStyle(
-          color: Colors.red[800],
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      TextField(
-                  controller: _farmNameController,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: name,
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // 바깥 터치로 닫히지 않게
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 32),
+                  SizedBox(width: 8),
+                  Text('정말 삭제하시겠습니까?', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '이 작업은 되돌릴 수 없습니다!\n정말로 $name 농가를 삭제하시겠습니까?',
+                    style: TextStyle(
+                      color: Colors.red[800],
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  onChanged: (value) {
-                    setState((){
-                      isMatched = value == name;});
-                    })])
-                ,
-      actions: [
-        TextButton(
-          child: Text('취소'),
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        ElevatedButton(
-          child: Text('삭제', style: TextStyle(fontWeight: FontWeight.bold)),
-          style: ElevatedButton.styleFrom(
+                  Text(
+                    '농가명($name)을 입력해야 삭제할 수 있습니다.',
+                    style: TextStyle(
+                      color: Colors.red[800],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextField(
+                    controller: _farmNameController,
+                    autofocus: true,
+                    decoration: InputDecoration(hintText: name),
+                    onChanged: (value) {
+                      setState(() {
+                        isMatched = value == name;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('취소'),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                ElevatedButton(
+                  child: Text(
+                    '삭제',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: isMatched ? Colors.red : Colors.grey,
+                  ),
 
-            foregroundColor: isMatched ? Colors.red : Colors.grey,
-          ),
-          
-          onPressed: isMatched?(){Navigator.of(context).pop(true);}:null,
-        ),
-      ],
-    );}
-    );});
+                  onPressed:
+                      isMatched
+                          ? () {
+                            Navigator.of(context).pop(true);
+                          }
+                          : null,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
     if (confirm == true) {
-
       await deleteFarm(selectedFarm!["id"]);
-}
-  loadFarms();
+    }
+    loadFarms();
   }
-  
 
-
-  void _showPermissionDialog(Map<String, dynamic> selectedFarm)  async{
-    final farmRef = FirebaseFirestore.instance.collection('farms').doc(selectedFarm["id"]);
+  void _showPermissionDialog(Map<String, dynamic> selectedFarm) async {
+    final farmRef = FirebaseFirestore.instance
+        .collection('farms')
+        .doc(selectedFarm["id"]);
     final farmSnap = await farmRef.get();
-    List<DocumentReference<Map<String, dynamic>>> authorizedRefs = 
-    (farmSnap['authorizedUsers'] as List<dynamic>?)?.cast<DocumentReference<Map<String, dynamic>>>() ?? [];
+    List<DocumentReference<Map<String, dynamic>>> authorizedRefs =
+        (farmSnap['authorizedUsers'] as List<dynamic>?)
+            ?.cast<DocumentReference<Map<String, dynamic>>>() ??
+        [];
     Set<String> authorizedUids = authorizedRefs.map((ref) => ref.id).toSet();
-  
+
     await showDialog(
-    context: context,
-    builder: (context) => PermissionManagementDialog(
-      farmRef: farmRef,
-      authorizedUids: authorizedUids,
-      onUpdate: loadFarms,
-      farmname: selectedFarm["farmName"]
-    ),
-  );
+      context: context,
+      builder:
+          (context) => PermissionManagementDialog(
+            farmRef: farmRef,
+            authorizedUids: authorizedUids,
+            onUpdate: loadFarms,
+            farmname: selectedFarm["farmName"],
+          ),
+    );
   }
-
-  
-
 
   Widget buildDataTable(String title, List<Map<String, dynamic>> farms) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-  columns: const [
-    DataColumn(label: Text('농가명')),
-    DataColumn(label: Text('작물')),
-    DataColumn(label: Text('줄기개수')),
-    DataColumn(label: Text('주소')),
-    DataColumn(label: Text('담당자')),
-  ],
-  rows: farms.map((farm) {
-    return DataRow(
-      selected: selectedFarm?['id'] == farm['id'],
-      onSelectChanged: (selected) {
-        setState(() {
-          selectedFarm = selected! ? farm : null;
-        });
-      },
-      cells: [
-        DataCell(Text(farm['farmName'] ?? '')),
-        DataCell(Text(farm['crop'] ?? '')),
-        DataCell(Text(farm['stem_count']?.toString() ?? '')),
-        DataCell(Text(farm['address'] ?? '')),
-        DataCell(
-          FutureBuilder<DocumentSnapshot>(
-            future: farm['owner'].get(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Text('로딩...');
-              }
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                return Text('미지정');
-              }
-              return Text(snapshot.data!.get('displayName') ?? '');
-            },
+            columns: const [
+              DataColumn(label: Text('농가명')),
+              DataColumn(label: Text('작물')),
+              DataColumn(label: Text('줄기개수')),
+              DataColumn(label: Text('주소')),
+              DataColumn(label: Text('담당자')),
+            ],
+            rows:
+                farms.map((farm) {
+                  return DataRow(
+                    selected: selectedFarm?['id'] == farm['id'],
+                    onSelectChanged: (selected) {
+                      setState(() {
+                        selectedFarm = selected! ? farm : null;
+                      });
+                    },
+                    cells: [
+                      DataCell(Text(farm['farmName'] ?? '')),
+                      DataCell(Text(farm['crop'] ?? '')),
+                      DataCell(Text(farm['stem_count']?.toString() ?? '')),
+                      DataCell(Text(farm['address'] ?? '')),
+                      DataCell(
+                        FutureBuilder<DocumentSnapshot>(
+                          future: farm['owner'].get(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Text('로딩...');
+                            }
+                            if (!snapshot.hasData || !snapshot.data!.exists) {
+                              return Text('미지정');
+                            }
+                            return Text(
+                              snapshot.data!.get('displayName') ?? '',
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
           ),
-        ),
-      ],
-    );
-  }).toList(),
-)
         ),
         const SizedBox(height: 24),
       ],
@@ -375,50 +404,75 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   Widget build(BuildContext context) {
     final isOwner = selectedFarm?['owner'].id == uid;
     return Scaffold(
-      body: Column(children:[Spacer(flex:1),Expanded(flex:1, child:Row(
-        children: [SizedBox(width:8),
-          if (selectedFarm == null)Expanded(flex:5, child:ElevatedButton(
-            onPressed: () => _openFarmDialog(), // 농가 추가 다이얼로그
-            child: Text('농가 추가'),
-          )),
-          SizedBox(width:8),
-          
-            if (selectedFarm != null)Expanded(flex:5, child:ElevatedButton(
-              onPressed:
-                  () => _confirmDelete(context),
-              child: Text('농가 삭제'),
-            ))
-            ,SizedBox(width:8),
-            if (selectedFarm != null)
-            Expanded(flex:5, child:ElevatedButton(
-              onPressed:
-                  () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (BuildContext context) => GrowthSurveyScreen(farm:selectedFarm!),
-                  ),
-                ),// 농가 수정 다이얼로그
-              child: Text('개체정보'),
-            )),SizedBox(width:8),
-            if (selectedFarm != null&&isOwner)Expanded(flex:5, child:ElevatedButton(
-              onPressed:
-                  () => _showPermissionDialog(selectedFarm!),
-              child: Text('권한 부여'),
-            ))]),),
+      body: Column(
+        children: [
+          Spacer(flex: 1),
           Expanded(
-            flex:30,
+            flex: 1,
+            child: Row(
+              children: [
+                SizedBox(width: 8),
+                if (selectedFarm == null)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton(
+                      onPressed: () => _openFarmDialog(), // 농가 추가 다이얼로그
+                      child: Text('농가 추가'),
+                    ),
+                  ),
+                SizedBox(width: 8),
+
+                if (selectedFarm != null)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton(
+                      onPressed: () => _confirmDelete(context),
+                      child: Text('농가 삭제'),
+                    ),
+                  ),
+                SizedBox(width: 8),
+                if (selectedFarm != null)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton(
+                      onPressed:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (BuildContext context) =>
+                                      GrowthSurveyScreen(farm: selectedFarm!),
+                            ),
+                          ), // 농가 수정 다이얼로그
+                      child: Text('개체정보'),
+                    ),
+                  ),
+                SizedBox(width: 8),
+                if (selectedFarm != null && isOwner)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton(
+                      onPressed: () => _showPermissionDialog(selectedFarm!),
+                      child: Text('권한 부여'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 30,
             child: SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildDataTable('my농가', myFarms),
-            buildDataTable('관리중인 농가', managedFarms),
-            buildDataTable('전체농가', allFarms),
-          ],
-        ),
-      ),
-    ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildDataTable('my농가', myFarms),
+                    buildDataTable('관리중인 농가', managedFarms),
+                    buildDataTable('전체농가', allFarms),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -431,23 +485,22 @@ class PermissionManagementDialog extends StatefulWidget {
   final Set<String> authorizedUids;
   final VoidCallback onUpdate;
   final String farmname;
-  
 
   const PermissionManagementDialog({
     required this.farmRef,
     required this.authorizedUids,
     required this.onUpdate,
-    required this.farmname
+    required this.farmname,
   });
 
-  
-
   @override
-  _PermissionManagementDialogState createState() => _PermissionManagementDialogState();
+  _PermissionManagementDialogState createState() =>
+      _PermissionManagementDialogState();
 }
 
-class _PermissionManagementDialogState extends State<PermissionManagementDialog> {
-  List<Map<String, dynamic>> _allUsers=[];
+class _PermissionManagementDialogState
+    extends State<PermissionManagementDialog> {
+  List<Map<String, dynamic>> _allUsers = [];
   late Set<String> _selectedToAdd;
   late Set<String> _selectedToRemove;
   late String uid;
@@ -462,13 +515,14 @@ class _PermissionManagementDialogState extends State<PermissionManagementDialog>
     uid = FirebaseAuth.instance.currentUser!.uid;
     userRef = FirebaseFirestore.instance.collection('users').doc(uid);
   }
+
   Future<List<Map<String, dynamic>>> fetchAllUsersExceptMe() async {
-  final snapshot = await FirebaseFirestore.instance.collection('users').get();
-  return snapshot.docs
-      .where((doc) => doc.id != uid)
-      .map((doc) => doc.data()..['uid'] = doc.id)
-      .toList();
-}
+    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+    return snapshot.docs
+        .where((doc) => doc.id != uid)
+        .map((doc) => doc.data()..['uid'] = doc.id)
+        .toList();
+  }
 
   Future<void> _loadUsers() async {
     _allUsers = await fetchAllUsersExceptMe();
@@ -477,8 +531,14 @@ class _PermissionManagementDialogState extends State<PermissionManagementDialog>
 
   @override
   Widget build(BuildContext context) {
-    final authorized = _allUsers.where((u) => widget.authorizedUids.contains(u['uid'])).toList();
-    final unauthorized = _allUsers.where((u) => !widget.authorizedUids.contains(u['uid'])).toList();
+    final authorized =
+        _allUsers
+            .where((u) => widget.authorizedUids.contains(u['uid']))
+            .toList();
+    final unauthorized =
+        _allUsers
+            .where((u) => !widget.authorizedUids.contains(u['uid']))
+            .toList();
 
     return AlertDialog(
       title: Text('${widget.farmname} 농가 권한 관리'),
@@ -487,25 +547,35 @@ class _PermissionManagementDialogState extends State<PermissionManagementDialog>
         height: MediaQuery.of(context).size.height * 0.6,
         child: Column(
           children: [
-            _buildUserSection('권한이 있는 사용자', authorized, _selectedToRemove, true),
+            _buildUserSection(
+              '권한이 있는 사용자',
+              authorized,
+              _selectedToRemove,
+              true,
+            ),
             Divider(),
-            _buildUserSection('권한이 없는 사용자', unauthorized, _selectedToAdd, false),
+            _buildUserSection(
+              '권한이 없는 사용자',
+              unauthorized,
+              _selectedToAdd,
+              false,
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('취소'),
-        ),
-        ElevatedButton(
-          onPressed: _saveChanges,
-          child: Text('저장'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text('취소')),
+        ElevatedButton(onPressed: _saveChanges, child: Text('저장')),
       ],
     );
   }
-  Widget _buildUserSection(String title, List<Map<String, dynamic>> users, Set<String> selectedSet, bool isRemoval) {
+
+  Widget _buildUserSection(
+    String title,
+    List<Map<String, dynamic>> users,
+    Set<String> selectedSet,
+    bool isRemoval,
+  ) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,20 +613,28 @@ class _PermissionManagementDialogState extends State<PermissionManagementDialog>
 
   Future<void> _saveChanges() async {
     // DocumentReference로 변환
-    final toAddRefs = _selectedToAdd.map((uid) => 
-      FirebaseFirestore.instance.collection('users').doc(uid)).toList();
-      
-    final toRemoveRefs = _selectedToRemove.map((uid) => 
-      FirebaseFirestore.instance.collection('users').doc(uid)).toList();
+    final toAddRefs =
+        _selectedToAdd
+            .map(
+              (uid) => FirebaseFirestore.instance.collection('users').doc(uid),
+            )
+            .toList();
+
+    final toRemoveRefs =
+        _selectedToRemove
+            .map(
+              (uid) => FirebaseFirestore.instance.collection('users').doc(uid),
+            )
+            .toList();
 
     final batch = FirebaseFirestore.instance.batch();
-    
+
     if (toAddRefs.isNotEmpty) {
       batch.update(widget.farmRef, {
         'authorizedUsers': FieldValue.arrayUnion(toAddRefs),
       });
     }
-    
+
     if (toRemoveRefs.isNotEmpty) {
       batch.update(widget.farmRef, {
         'authorizedUsers': FieldValue.arrayRemove(toRemoveRefs),
@@ -568,4 +646,3 @@ class _PermissionManagementDialogState extends State<PermissionManagementDialog>
     Navigator.pop(context);
   }
 }
-
