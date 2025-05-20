@@ -36,8 +36,6 @@ void main() async {
         ChangeNotifierProvider(
       create: (_) => settings,
     ),
-    ChangeNotifierProvider(
-      create: (_) => SurveyState(farmId: 1)),
       ],child:AgriculturalBigdataApp()));
 }
 

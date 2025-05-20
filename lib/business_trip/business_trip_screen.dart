@@ -35,14 +35,21 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
   }
 
   Future<void> _loadMyFarms() async {
-    QuerySnapshot farmSnap =
+    QuerySnapshot ownerSnap =
         await FirebaseFirestore.instance
             .collection('farms')
             .where('owner', isEqualTo: userRef)
             .get();
+
+    final QuerySnapshot authUserSnap =
+        await FirebaseFirestore.instance
+            .collection('farms')
+            .where('authorizedUsers', arrayContains: userRef)
+            .get();
+    final allFarms = [...ownerSnap.docs, ...authUserSnap.docs].toList();
     setState(() {
       farmList =
-          farmSnap.docs.map((doc) {
+          allFarms.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return {
               'id': doc.id, // 문서 ID 추가
@@ -58,7 +65,6 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
     if (farmNames.isNotEmpty) {
       selectedFarm = farmNames[selectedFarmIndex];
       farm = farmList[selectedFarmIndex];
-      farm["id"] = farmList[selectedFarmIndex]["id"];
     }
   }
 
@@ -120,7 +126,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                 children: [
                   Spacer(flex: 1),
                   Expanded(
-                    flex: 1,
+                    flex: 2,
                     child: Container(
                       height: 50, // 버튼 높이 설정
                       child: ListView.builder(
@@ -134,7 +140,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(40),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 backgroundColor:
                                     selectedFarmIndex == index
@@ -313,8 +319,10 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder:
-                                  (BuildContext context) =>
-                                      GrowthSurveyScreen(farm: farm),
+                                  (BuildContext context) => GrowthSurveyScreen(
+                                    farm: farm,
+                                    isEditMode: true,
+                                  ),
                             ),
                           );
                         },

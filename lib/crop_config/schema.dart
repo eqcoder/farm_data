@@ -67,6 +67,7 @@ CropField stemThikness = CropField(
 );
 final cropSchema = {
   '파프리카': {
+    '개체개수': 10,
     '이미지제목': [
       "재배전경",
       "1-1 개체생장점 사진",
@@ -79,7 +80,7 @@ final cropSchema = {
       "특이사항",
     ],
     '마디정보': {
-      "번호": null,
+      "마디번호": null,
       "status": "개화",
       "개화": null,
       "착과": null,
@@ -91,23 +92,16 @@ final cropSchema = {
       "과고": null,
     },
     '기본조사': [
-      leafCount,
-      leafLength,
-      leafWidth,
       growth,
       flowerHeight,
       stemThikness,
+      leafCount,
+      leafLength,
+      leafWidth,
     ],
   },
   '토마토': {
-    '이미지제목': [
-      "1개체 22화방",
-      "재배전경",
-      "1개체",
-      "특이사항"
-          "pH",
-      "온습도",
-    ],
+    '이미지제목': ["1개체 22화방", "재배전경", "1개체", "특이사항", "pH", "온습도"],
     '마디정보': {
       "꽃대": null,
       "개화수": null,
@@ -120,12 +114,12 @@ final cropSchema = {
       "산도": null,
     },
     '기본조사': [
-      leafCount,
-      leafLength,
-      leafWidth,
       growth,
       flowerHeight,
       stemThikness,
+      leafCount,
+      leafLength,
+      leafWidth,
     ],
   },
   "배추": {

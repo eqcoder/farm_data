@@ -220,17 +220,17 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
       // 기본 개체(1번) 생성
       final individualRef = farmRef.collection('개체').doc('1');
-
+      individualRef.set({'개체번호': 1});
       // stem_count만큼 줄기 생성
       for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
         final stemRef = individualRef.collection('줄기').doc(stemNum.toString());
-        await stemRef.set({'createdAt': FieldValue.serverTimestamp()});
-
+        ;
+        stemRef.set({'줄기번호': stemNum});
         // 각 줄기에 기본 마디(1번) 생성
         final nodeRef = stemRef.collection('마디').doc('1');
         final Map<String, dynamic> nodeData = {
           ...(schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'],
-          '번호': nodeRef.id,
+          '마디번호': 1,
         };
         await nodeRef.set(nodeData);
       }
@@ -355,7 +355,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
             columns: const [
               DataColumn(label: Text('농가명')),
               DataColumn(label: Text('작물')),
-              DataColumn(label: Text('줄기개수')),
               DataColumn(label: Text('주소')),
               DataColumn(label: Text('담당자')),
             ],
@@ -371,7 +370,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                     cells: [
                       DataCell(Text(farm['farmName'] ?? '')),
                       DataCell(Text(farm['crop'] ?? '')),
-                      DataCell(Text(farm['stem_count']?.toString() ?? '')),
                       DataCell(Text(farm['address'] ?? '')),
                       DataCell(
                         FutureBuilder<DocumentSnapshot>(
@@ -439,8 +437,10 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                           () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder:
-                                  (BuildContext context) =>
-                                      GrowthSurveyScreen(farm: selectedFarm!),
+                                  (BuildContext context) => GrowthSurveyScreen(
+                                    farm: selectedFarm!,
+                                    isEditMode: false,
+                                  ),
                             ),
                           ), // 농가 수정 다이얼로그
                       child: Text('개체정보'),
@@ -589,8 +589,11 @@ class _PermissionManagementDialogState
               itemCount: users.length,
               itemBuilder: (context, index) {
                 final user = users[index];
+                final String name = user['name'] ?? user['uid'];
+                final String? photoURL = user['photoURL'];
+
                 return CheckboxListTile(
-                  title: Text(user['name'] ?? user['uid']),
+                  title: Text(name),
                   value: selectedSet.contains(user['uid']),
                   onChanged: (value) {
                     setState(() {
@@ -602,6 +605,20 @@ class _PermissionManagementDialogState
                     });
                   },
                   subtitle: Text(isRemoval ? '권한 해제 선택' : '권한 부여 선택'),
+                  secondary: CircleAvatar(
+                    backgroundImage:
+                        (photoURL != null && photoURL.isNotEmpty)
+                            ? NetworkImage(photoURL)
+                            : null,
+                    child:
+                        (photoURL == null || photoURL.isEmpty)
+                            ? Text(
+                              name.isNotEmpty ? name[0] : '?',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            )
+                            : null,
+                    backgroundColor: Colors.grey[300],
+                  ),
                 );
               },
             ),
