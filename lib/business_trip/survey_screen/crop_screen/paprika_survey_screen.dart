@@ -2,7 +2,6 @@ import '../../../crop/schema.dart' as schema;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../appbar.dart';
-import '../../../database/database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,30 +14,28 @@ import 'package:googleapis/sheets/v4.dart' as sheet;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import '../../../provider.dart' as provider;
+import '../../../crop/paprika.dart';
+import '../../../farm/schema.dart';
+
 
 class PaprikaSurveyScreen extends StatefulWidget {
-  final Map<String, dynamic> farm;
-  final bool isEditMode; // 예시
-  const PaprikaSurveyScreen({
-    super.key,
-    required this.farm,
-    required this.isEditMode,
-  });
+  final Farm farm;
+  const PaprikaSurveyScreen({super.key, required this.farm});
   @override
   _PaprikaSurveyScreenState createState() => _PaprikaSurveyScreenState();
 }
 
 class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
-  late bool isEditMode;
+  
   final PageController _pageController = PageController();
-  late Map<String, dynamic> farm;
+  late Farm farm;
+  late Paprika paprika;
   int _currentPage = 0;
   Map<String, dynamic> _currentStem = <String, dynamic>{};
   late DocumentReference<Map<String, dynamic>> farmRef;
   late DocumentReference<Map<String, dynamic>> stemRef;
   late int stemCount;
   late QuerySnapshot<Map<String, dynamic>> entities;
-  late List<Map<String, dynamic>> allStems = [];
   bool _isLoading = true;
   late Future<QuerySnapshot<Map<String, dynamic>>> _nodesFuture;
   String entityName = "";
@@ -51,8 +48,8 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    isEditMode = widget.isEditMode;
-    farm = widget.farm;
+    farm=widget.farm;
+    (Paprika) farm.crop.;
     farmRef = FirebaseFirestore.instance.collection('farms').doc(farm["id"]);
     _loadAllStems();
     stemCount = farm["stem_count"];
@@ -62,60 +59,6 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
   void dispose() {
     _pageController.dispose(); // 컨트롤러 해제
     super.dispose();
-  }
-
-  Future<QuerySnapshot<Map<String, dynamic>>> _loadNodes() {
-    return stemRef.collection('마디').orderBy('마디번호').get();
-  }
-
-  Future<void> _loadStemData(int index) async {
-    // final doc = await allStems[index]["stemRef"].get();
-    setState(() {
-      // _currentStemData = doc.data();
-      _currentPage = index;
-      _currentStem = allStems[_currentPage];
-      stemRef = _currentStem["stemRef"];
-      _nodesFuture = _loadNodes();
-    });
-  }
-
-  Future<void> _loadAllStems() async {
-    setState(() {
-      _isLoading = true;
-      allStems = [];
-    });
-    // 1. 모든 개체 가져오기 (entity_number 오름차순)
-    entities = await farmRef.collection('개체').orderBy('개체번호').get();
-    // 2. 각 개체의 줄기 가져오기 (stem_number 오름차순)
-    for (final entity in entities.docs) {
-      final stemsSnapshot =
-          await farmRef
-              .collection('개체')
-              .doc(entity["개체번호"].toString())
-              .collection('줄기')
-              .orderBy('줄기번호')
-              .get();
-
-      for (final stem in stemsSnapshot.docs) {
-        allStems.add(
-          Map<String, dynamic>.from({
-            "stemRef": stem.reference,
-            "entity_number": entity["개체번호"],
-            "stem_number": stem["줄기번호"],
-          }),
-        );
-      }
-      stemNames =
-          allStems
-              .map((item) => "${item['entity_number']}-${item['stem_number']}")
-              .toList();
-
-      if (allStems.isNotEmpty) {
-        await _loadStemData(_currentPage);
-      }
-
-      _isLoading = false;
-    }
   }
 
   void EnterBasicSurvey() async {
@@ -130,7 +73,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
         final stemDocRef = FirebaseFirestore.instance
             .collection('farms')
             .doc(farm["id"])
-            .collection('개체')
+            .collection('entity')
             .doc(_currentStem['entity_number'].toString())
             .collection('줄기')
             .doc(_currentStem['stem_number'].toString());
@@ -529,54 +472,6 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
         SizedBox(width: 8),
       ],
     );
-  }
-
-  Future<void> deleteStem(
-    String entityId,
-    String stemId,
-    DocumentReference<Map<String, dynamic>> stemRef,
-  ) async {
-    try {
-      // 줄기의 모든 마디 삭제
-      final nodes = await stemRef.collection('마디').get();
-
-      for (final node in nodes.docs) {
-        await node.reference.delete();
-        _loadAllStems();
-      }
-
-      // 줄기 문서 삭제
-      await stemRef.delete();
-    } catch (e) {
-      print('줄기 삭제 실패: $e');
-      rethrow;
-    }
-  }
-
-  void _addStem(int entityNum) async {
-    final individualRef = farmRef.collection('개체').doc(entityNum.toString());
-    individualRef.set(Map<String, dynamic>.from({"개체번호": entityNum}));
-    // stem_count만큼 줄기 생성
-    for (int stemNum = 1; stemNum <= stemCount; stemNum++) {
-      final stemRef = individualRef.collection('줄기').doc(stemNum.toString());
-      stemRef.set(Map<String, dynamic>.from({"줄기번호": stemNum}));
-      // 각 줄기에 기본 마디(1번) 생성
-      final nodeRef = stemRef.collection('마디').doc('1');
-      final Map<String, dynamic> nodeData = {
-        ...(schema.cropSchema[farm["crop"]] as Map<String, dynamic>)['마디정보'],
-        '마디번호': 1,
-      };
-      await nodeRef.set(nodeData);
-      _loadAllStems();
-    }
-    final lastIndex = allStems.length - stemCount;
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        lastIndex,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.ease,
-      );
-    }
   }
 
   Future<void> _updateNodeStatus(
