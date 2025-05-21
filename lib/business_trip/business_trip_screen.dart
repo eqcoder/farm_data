@@ -19,7 +19,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
   String selectedFarm = "";
   int selectedFarmIndex = 0;
   String weatherInfo = "날씨 정보를 불러오는 중...";
-  String farmAddress = "서울특별시 중구 세종대로"; // 예제 주소 (실제 데이터 사용 가능)
+  String farmAddress = ""; // 예제 주소 (실제 데이터 사용 가능)
   List<Map<String, dynamic>> farmList = [];
   List<String> farmNames = [];
   Map<String, dynamic> farm = <String, dynamic>{};

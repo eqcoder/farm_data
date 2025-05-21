@@ -1,4 +1,4 @@
-import '../../../crop_config/schema.dart' as schema;
+import '../../../crop/schema.dart' as schema;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../appbar.dart';

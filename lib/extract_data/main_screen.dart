@@ -1,4 +1,4 @@
-import 'package:farm_data/crop_config/crop_default.dart';
+import 'package:farm_data/crop/crop.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +8,7 @@ import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'clean_image.dart';
 import 'gemini.dart';
-import '../crop_config/schema.dart';
+import '../crop/schema.dart';
 import 'android_screen.dart';
 import 'windows_screen.dart';
 import 'package:window_manager/window_manager.dart';
@@ -22,16 +22,16 @@ class EnterDataScreen extends StatefulWidget {
 }
 
 class _EnterDataScreenState extends State<EnterDataScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:Center(
+      body: Center(
         child:
             Platform.isAndroid
                 ? AndroidEnterDataLayout()
                 : WindowsEnterDataLayout(),
-      ));
+      ),
+    );
   }
 
   // CropDefault setCrop(Map<String, dynamic> data){

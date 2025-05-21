@@ -1,4 +1,4 @@
-import 'package:farm_data/crop_config/crop_default.dart';
+import 'package:farm_data/crop/crop.dart';
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
@@ -14,7 +14,7 @@ final Schema schema = Schema.object(
           '생장길이': Schema.number(nullable: false, description: 'column3'),
           '엽수': Schema.integer(nullable: false, description: 'column4'),
           '엽장': Schema.number(nullable: false, description: 'column5'),
-          '엽폭': Schema.number(nullable: false, description: 'column6'), 
+          '엽폭': Schema.number(nullable: false, description: 'column6'),
           '줄기굵기': Schema.number(nullable: false, description: 'column7'),
           '화방높이': Schema.number(nullable: false, description: 'column8'),
           '개화마디': Schema.integer(nullable: false, description: 'column9'),
@@ -122,15 +122,17 @@ class _PepperWidgetState extends State<PepperWidget> {
       text: widget.data[rowIndex][columnName].toString(),
     );
     controller.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: controller.text.length,
-      );
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("개체 ${widget.data[rowIndex]["개체"]}-${widget.data[rowIndex]["줄기번호"]} $columnName 수정"),
+          title: Text(
+            "개체 ${widget.data[rowIndex]["개체"]}-${widget.data[rowIndex]["줄기번호"]} $columnName 수정",
+          ),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(border: OutlineInputBorder()),
@@ -184,10 +186,10 @@ class _PepperWidgetState extends State<PepperWidget> {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.of(context).size.height * 0.8, // 화면 높이의 80%로 제한
-    ),
-      child:SingleChildScrollView(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.8, // 화면 높이의 80%로 제한
+      ),
+      child: SingleChildScrollView(
         scrollDirection: Axis.vertical, // 가로 스크롤
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,

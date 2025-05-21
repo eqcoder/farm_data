@@ -1,14 +1,17 @@
-import 'package:farm_data/crop_config/crop_default.dart';
+import 'package:farm_data/crop/crop.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 final Schema schema = Schema.object(
   properties: {
-    '화방별조사': Schema.array(nullable: false,
+    '화방별조사': Schema.array(
+      nullable: false,
       items: Schema.object(
         properties: {
           '개체': Schema.integer(nullable: false),
-          '화방': Schema.array(nullable: false,
-            items: Schema.object(nullable: false,
+          '화방': Schema.array(
+            nullable: false,
+            items: Schema.object(
+              nullable: false,
               properties: {
                 '화방번호': Schema.integer(nullable: false),
                 '꽃대': Schema.integer(nullable: false),
@@ -22,8 +25,10 @@ final Schema schema = Schema.object(
         },
       ),
     ),
-    '기본조사': Schema.array(nullable: false,
-      items: Schema.object(nullable: false,
+    '기본조사': Schema.array(
+      nullable: false,
+      items: Schema.object(
+        nullable: false,
         properties: {
           '개체': Schema.integer(nullable: false),
           '생장길이': Schema.number(nullable: false),
@@ -68,7 +73,6 @@ final Schema schema = Schema.object(
 //   }
 // }
 // }
-class Tomato extends CropDefault{
+class Tomato extends CropDefault {
   Tomato(super.data);
-
 }

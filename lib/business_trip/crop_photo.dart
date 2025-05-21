@@ -19,7 +19,7 @@ import 'package:provider/provider.dart';
 import '../provider.dart' as provider;
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import '../../crop_config/schema.dart' as schema;
+import '../crop/schema.dart' as schema;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';

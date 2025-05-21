@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../crop_config/schema.dart' as schema;
+import '../crop/schema.dart' as schema;
 import '../business_trip/survey_screen/growth_survey.dart';
 
 class FarmInfoScreen extends StatefulWidget {
@@ -219,18 +219,20 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       });
 
       // 기본 개체(1번) 생성
-      final individualRef = farmRef.collection('개체').doc('1');
-      individualRef.set({'개체번호': 1});
+      final individualRef = farmRef.collection('entity').doc('1');
+      individualRef.set({'entity_number': 1});
       // stem_count만큼 줄기 생성
       for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
-        final stemRef = individualRef.collection('줄기').doc(stemNum.toString());
+        final stemRef = individualRef
+            .collection('stem_number')
+            .doc(stemNum.toString());
         ;
-        stemRef.set({'줄기번호': stemNum});
+        stemRef.set({'stem_number': stemNum});
         // 각 줄기에 기본 마디(1번) 생성
-        final nodeRef = stemRef.collection('마디').doc('1');
+        final nodeRef = stemRef.collection('node').doc('1');
         final Map<String, dynamic> nodeData = {
           ...(schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'],
-          '마디번호': 1,
+          'node_number': 1,
         };
         await nodeRef.set(nodeData);
       }
@@ -610,6 +612,7 @@ class _PermissionManagementDialogState
                         (photoURL != null && photoURL.isNotEmpty)
                             ? NetworkImage(photoURL)
                             : null,
+                    backgroundColor: Colors.grey[300],
                     child:
                         (photoURL == null || photoURL.isEmpty)
                             ? Text(
@@ -617,7 +620,6 @@ class _PermissionManagementDialogState
                               style: TextStyle(fontWeight: FontWeight.bold),
                             )
                             : null,
-                    backgroundColor: Colors.grey[300],
                   ),
                 );
               },
