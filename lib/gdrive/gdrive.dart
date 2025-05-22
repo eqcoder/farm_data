@@ -5,31 +5,28 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart' as google_auth;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:googleapis/sheets/v4.dart' as sheets;
+import 'package:googleapis/sheets/v4.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path/path.dart' as path;
-import 'package:googleapis/sheets/v4.dart' as sheets;
 
 const _clientId =
     "455278327943-k1o8o9nm6bs41trsbppuoaof19c136eb.apps.googleusercontent.com";
 const _scopes = ['https://www.googleapis.com/auth/drive.file'];
 
-
 class GoogleDriveClass {
   static final GoogleDriveClass instance = GoogleDriveClass._internal();
   GoogleDriveClass._internal();
   drive.DriveApi? driveApi;
-  late sheets.SheetsApi sheetsApi;
+  SheetsApi? sheetsApi;
   final GoogleSignIn googleSignIn = GoogleSignIn(
-  scopes: [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/drive.file',
-  ],
-);
+    scopes: [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/drive.file',
+    ],
+  );
   //로그인
   Future<void> signIn() async {
     final GoogleSignInAccount? account = await googleSignIn.signIn();
@@ -38,54 +35,59 @@ class GoogleDriveClass {
       return;
     }
 
-
-  // AccessCredentials 객체 생성
-  final authHeaders = await account.authHeaders;
-    final client = GoogleAuthClient(header:authHeaders);
+    // AccessCredentials 객체 생성
+    final authHeaders = await account.authHeaders;
+    final client = GoogleAuthClient(header: authHeaders);
 
     driveApi = drive.DriveApi(client);
-    sheetsApi = sheets.SheetsApi(client!);
+    sheetsApi = SheetsApi(client);
     print('✅ 로그인 성공: ${account.email}');
   }
 
- //로그아웃
+  //로그아웃
   Future<void> signOut() async {
     GoogleSignIn googleSignIn = GoogleSignIn();
     await googleSignIn.signOut();
   }
 
-  Future<void> getDriveApi(
-      GoogleSignInAccount googleSignInAccount) async {
+  Future<void> getDriveApi(GoogleSignInAccount googleSignInAccount) async {
     final header = await googleSignInAccount.authHeaders;
     GoogleAuthClient googleAuthClient = GoogleAuthClient(header: header);
-    driveApi= drive.DriveApi(googleAuthClient);
+    driveApi = drive.DriveApi(googleAuthClient);
   }
-  Future<String> createFolder(drive.DriveApi driveApi, String name, String? parentId) async {
-    
-    final query = parentId != null 
-      ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
-      : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
+
+  Future<String> createFolder(
+    drive.DriveApi driveApi,
+    String name,
+    String? parentId,
+  ) async {
+    final query =
+        parentId != null
+            ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
+            : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
     final response = await driveApi.files.list(q: query);
 
     if (response.files?.isNotEmpty ?? false) {
       return response.files!.first.id!;
     } else {
-      final folderMetadata = drive.File()
-        ..name = name
-        ..mimeType = "application/vnd.google-apps.folder"
-        ..parents = parentId != null ? [parentId] : null;
+      final folderMetadata =
+          drive.File()
+            ..name = name
+            ..mimeType = "application/vnd.google-apps.folder"
+            ..parents = parentId != null ? [parentId] : null;
 
       final folder = await driveApi.files.create(folderMetadata);
       return folder.id!;
     }
   }
+
   Future<void> uploadPhotoToDrive({
-  required drive.DriveApi driveApi,
-  required String folderId,
-  required String fileName,
-  required File imageFile,
-}) async {
-  final existingFiles = await driveApi.files.list(
+    required drive.DriveApi driveApi,
+    required String folderId,
+    required String fileName,
+    required File imageFile,
+  }) async {
+    final existingFiles = await driveApi.files.list(
       q: "'$folderId' in parents and name='$fileName'",
     );
 
@@ -95,24 +97,21 @@ class GoogleDriveClass {
         await driveApi.files.delete(file.id!);
       }
     }
-  final file = drive.File()
-    ..name = fileName
-    ..parents = [folderId];
+    final file =
+        drive.File()
+          ..name = fileName
+          ..parents = [folderId];
 
-  final media = drive.Media(
-    imageFile.openRead(),
-    imageFile.lengthSync(),
-  );
+    final media = drive.Media(imageFile.openRead(), imageFile.lengthSync());
 
-  await driveApi.files.create(
-    file,
-    uploadMedia: media,
-  );
-}
-  Future<drive.File?> upLoad(
-      {required drive.DriveApi driveApi,
-      required File file,
-      String? driveFileId}) async {
+    await driveApi.files.create(file, uploadMedia: media);
+  }
+
+  Future<drive.File?> upLoad({
+    required drive.DriveApi driveApi,
+    required File file,
+    String? driveFileId,
+  }) async {
     // 드라이브 업로드용 파일 정보
     drive.File driveFile = drive.File();
 
@@ -121,21 +120,32 @@ class GoogleDriveClass {
 
     late final response;
     if (driveFileId != null) {
-      response = await driveApi.files.update(driveFile, driveFileId,
-          uploadMedia: drive.Media(file.openRead(), file.lengthSync()));
+      response = await driveApi.files.update(
+        driveFile,
+        driveFileId,
+        uploadMedia: drive.Media(file.openRead(), file.lengthSync()),
+      );
     } else {
       driveFile.parents = ["appDataFolder"];
-      response = await driveApi.files.create(driveFile,
-          uploadMedia: drive.Media(file.openRead(), file.lengthSync()));
+      response = await driveApi.files.create(
+        driveFile,
+        uploadMedia: drive.Media(file.openRead(), file.lengthSync()),
+      );
     }
     return response;
   }
-   Future<File> downLoad(
-      {required String driveFileId,
-      required drive.DriveApi driveApi,
-      required String localPath}) async {
-    drive.Media media = await driveApi.files.get(driveFileId,
-        downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+
+  Future<File> downLoad({
+    required String driveFileId,
+    required drive.DriveApi driveApi,
+    required String localPath,
+  }) async {
+    drive.Media media =
+        await driveApi.files.get(
+              driveFileId,
+              downloadOptions: drive.DownloadOptions.fullMedia,
+            )
+            as drive.Media;
 
     List<int> data = [];
 
@@ -147,6 +157,51 @@ class GoogleDriveClass {
     file.writeAsBytesSync(data);
 
     return file;
+  }
+
+  Future<String> createSpreadsheetAndInsertData({
+    required String fileName,
+    required List<List<dynamic>> data,
+    String? folderId,
+  }) async {
+    try {
+      // 1. Google 로그인 확인
+      if (driveApi == null) {
+        await signIn();
+        if (driveApi == null) throw Exception('Google Drive API 연결 실패');
+      }
+
+      // 2. 새 스프레드시트 생성
+      final spreadsheet =
+          Spreadsheet()..properties = SpreadsheetProperties(title: fileName);
+
+      final created = await sheetsApi!.spreadsheets.create(spreadsheet);
+      final spreadsheetId = created.spreadsheetId!;
+
+      // 3. 폴더로 이동 (폴더 ID가 제공된 경우)
+      if (folderId != null) {
+        final file = drive.File()..parents = [folderId];
+        await driveApi!.files.update(file, spreadsheetId);
+      }
+
+      // 4. 데이터 삽입
+      final valueRange =
+          ValueRange()
+            ..values = data
+            ..majorDimension = 'ROWS';
+
+      await sheetsApi!.spreadsheets.values.update(
+        valueRange,
+        spreadsheetId,
+        'A1', // 시작 셀
+        valueInputOption: 'RAW',
+      );
+
+      return spreadsheetId;
+    } catch (e) {
+      print('스프레드시트 생성 실패: $e');
+      rethrow;
+    }
   }
 }
 
@@ -160,8 +215,8 @@ class GoogleAuthClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers.addAll(header);
     return client.send(request);
-  }}
-
+  }
+}
 
 class SecureStorage {
   final storage = FlutterSecureStorage();

@@ -18,53 +18,6 @@ class CropField {
   });
 }
 
-CropField leafCount = CropField(
-  label: '엽수',
-  type: int,
-  min: 1,
-  max: 50,
-  step: 1,
-);
-
-CropField leafLength = CropField(
-  label: '엽장',
-  type: double,
-  min: 5,
-  max: 50.0,
-  step: 0.1,
-);
-
-CropField leafWidth = CropField(
-  label: '엽폭',
-  type: double,
-  min: 5,
-  max: 50.0,
-  step: 0.1,
-);
-
-CropField growth = CropField(
-  label: '생장길이',
-  type: double,
-  min: 1,
-  max: 200,
-  step: 0.1,
-);
-
-CropField flowerHeight = CropField(
-  label: '화방높이',
-  type: double,
-  min: 1,
-  max: 50,
-  step: 0.1,
-);
-
-CropField stemThikness = CropField(
-  label: '줄기굵기',
-  type: double,
-  min: 1,
-  max: 20,
-  step: 0.1,
-);
 final cropSchema = {
   '파프리카': {
     '개체개수': 10,

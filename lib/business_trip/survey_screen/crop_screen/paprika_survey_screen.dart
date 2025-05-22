@@ -1,11 +1,10 @@
-import '../../../crop/schema.dart' as schema;
+import 'package:farm_data/business_trip/survey_screen/growth_survey.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import '../../../appbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
@@ -15,8 +14,9 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import '../../../provider.dart' as provider;
 import '../../../crop/paprika.dart';
+import '../../../crop/crop.dart';
 import '../../../farm/schema.dart';
-
+import '../widget.dart';
 
 class PaprikaSurveyScreen extends StatefulWidget {
   final Farm farm;
@@ -26,17 +26,18 @@ class PaprikaSurveyScreen extends StatefulWidget {
 }
 
 class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
-  
   final PageController _pageController = PageController();
   late Farm farm;
-  late Paprika paprika;
+  late Crop paprika;
+  String farmName = "";
   int _currentPage = 0;
+  final today = DateFormat('MM/dd').format(DateTime.now());
   Map<String, dynamic> _currentStem = <String, dynamic>{};
   late DocumentReference<Map<String, dynamic>> farmRef;
   late DocumentReference<Map<String, dynamic>> stemRef;
   late int stemCount;
+
   late QuerySnapshot<Map<String, dynamic>> entities;
-  bool _isLoading = true;
   late Future<QuerySnapshot<Map<String, dynamic>>> _nodesFuture;
   String entityName = "";
   List<String> stemNames = [];
@@ -46,13 +47,13 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    farm=widget.farm;
-    (Paprika) farm.crop.;
-    farmRef = FirebaseFirestore.instance.collection('farms').doc(farm["id"]);
-    _loadAllStems();
-    stemCount = farm["stem_count"];
+    farm = widget.farm;
+    paprika = farm.crop;
+    farmName = farm.name;
+    stemCount = (paprika as Paprika).stemCount;
+    farmRef = FirebaseFirestore.instance.collection('farms').doc(farm.id);
+    refresh();
   }
 
   @override
@@ -61,235 +62,9 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
     super.dispose();
   }
 
-  void EnterBasicSurvey() async {
-    final result = await showCropInputDialog(
-      context: context,
-      fields: (schema.cropSchema[farm["crop"]] as Map<String, dynamic>)["기본조사"],
-    );
-
-    // 2. Firestore에 저장
-    if (result != null) {
-      try {
-        final stemDocRef = FirebaseFirestore.instance
-            .collection('farms')
-            .doc(farm["id"])
-            .collection('entity')
-            .doc(_currentStem['entity_number'].toString())
-            .collection('줄기')
-            .doc(_currentStem['stem_number'].toString());
-
-        // 문서가 없으면 생성, 있으면 crops 필드 업데이트
-        await stemDocRef.set(result, SetOptions(merge: true));
-
-        print('저장 성공!');
-      } catch (e) {
-        print('저장 실패: $e');
-      }
-    }
-  }
-
-  Future<Map<String, dynamic>?> showCropInputDialog({
-    required BuildContext context,
-    required List<schema.CropField> fields,
-  }) async {
-    // 각 필드의 초기값 설정 (최소값)
-    for (final field in fields) {
-      basicSurvey[field.label] = field.min;
-    }
-
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return CupertinoAlertDialog(
-              title: Text('${stemNames[_currentPage]}개체 기본조사 입력'),
-              content: SizedBox(
-                height: 600,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // 각 필드별 Picker 생성
-                      for (final field in fields)
-                        _buildFieldPicker(field, basicSurvey, setState),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text('취소'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                CupertinoDialogAction(
-                  child: const Text('입력'),
-                  onPressed: () => Navigator.pop(context, basicSurvey),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildFieldPicker(
-    schema.CropField field,
-    Map<String, dynamic> values,
-    StateSetter setState,
-  ) {
-    // 값 리스트 생성 (정수/소수 구분)
-    final List<double> valueList = [];
-    for (double i = field.min; i <= field.max; i += field.step) {
-      valueList.add(i);
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            field.label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(width: 10),
-        SizedBox(
-          width: 100,
-          height: 150,
-          child: CupertinoPicker(
-            itemExtent: 40,
-            onSelectedItemChanged: (index) {
-              setState(() {
-                values[field.label] =
-                    field.type == int
-                        ? valueList[index]
-                            .toInt() // 정수 변환
-                        : valueList[index]; // 소수 유지
-              });
-            },
-            children:
-                valueList.map((value) {
-                  return Center(
-                    child: Text(
-                      field.type == int
-                          ? value
-                              .toInt()
-                              .toString() // 정수 표시
-                          : value.toStringAsFixed(1), // 소수점 1자리 표시
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                  );
-                }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void deleteDialog() async {
-    {
-      bool isMatched = false;
-      String name = farm["farmName"];
-      final String entityNumber = _currentStem["entity_number"];
-      final String stemNumber = _currentStem["stem_number"];
-      final TextEditingController _farmNameController = TextEditingController();
-      final confirm = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false, // 바깥 터치로 닫히지 않게
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.red, size: 32),
-                    SizedBox(width: 8),
-                    Text('정말 삭제하시겠습니까?', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '이 작업은 되돌릴 수 없습니다!\n정말로 $entityNumber-$stemNumber 개체를 삭제하시겠습니까?',
-                      style: TextStyle(
-                        color: Colors.red[800],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '농가명($name)을 입력해야 삭제할 수 있습니다.',
-                      style: TextStyle(
-                        color: Colors.red[800],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextField(
-                      controller: _farmNameController,
-                      autofocus: true,
-                      decoration: InputDecoration(hintText: name),
-                      onChanged: (value) {
-                        setState(() {
-                          isMatched = value == name;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    child: Text('취소'),
-                    onPressed: () => Navigator.of(context).pop(false),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: isMatched ? Colors.red : Colors.grey,
-                    ),
-                    onPressed:
-                        isMatched
-                            ? () {
-                              Navigator.of(context).pop(true);
-                            }
-                            : null,
-                    child: Text(
-                      '삭제',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-      if (confirm == true) {
-        deleteStem(entityNumber, stemNumber.toString(), stemRef);
-        await _loadAllStems();
-      }
-    }
-  }
-
-  Future<void> _addNode(BuildContext context, int nodeNum) async {
-    // 자동 생성 ID로 문서 참조 생성
-    final nodeRef = stemRef.collection('마디').doc(nodeNum.toString());
-    final nodeInfo =
-        (schema.cropSchema[farm["crop"]] as Map<String, dynamic>)["마디정보"];
-    nodeInfo["마디번호"] = nodeNum;
-    await nodeRef.set(nodeInfo);
-    setState(() {
-      _nodesFuture = _loadNodes(); // Future를 새로 할당
-    });
-  }
-
-  Future<void> _deleteNode(BuildContext context, int nodeNum) async {
-    final nodeRef = stemRef.collection('마디').doc(nodeNum.toString());
-    nodeRef.delete();
-    setState(() {
-      _nodesFuture = _loadNodes(); // Future를 새로 할당
-    });
+  void refresh() async {
+    await (paprika as Paprika).loadAllStems();
+    setState(() {});
   }
 
   Widget _editNodeButton(BuildContext context, int nodeNum) {
@@ -302,7 +77,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             icon: const Icon(Icons.add),
             label: const Text('마디 추가'),
             onPressed: () async {
-              _addNode(context, nodeNum + 1);
+              (paprika as Paprika).addNode(stemRef, nodeNum + 1);
             },
           ),
         ),
@@ -313,7 +88,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('마디 삭제'),
                 onPressed: () async {
-                  _deleteNode(context, nodeNum);
+                  (paprika as Paprika).deleteNode(stemRef, nodeNum);
                 },
               ),
             )
@@ -322,11 +97,65 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
     );
   }
 
-  Widget _pageDropdown() {
-    final List<String> _items =
-        allStems
-            .map((item) => "${item['entity_number']}-${item['stem_number']}")
-            .toList();
+  List<String> getAvailableEntityStemOptions({required List<String> existing}) {
+    final entityStemMap = <int, Set<int>>{};
+
+    // 기존 데이터 파싱: {1: {1}, 2: {1}}
+    for (final item in existing) {
+      final parts = item.split('-');
+      if (parts.length != 2) continue;
+      final entity = int.tryParse(parts[0]);
+      final stem = int.tryParse(parts[1]);
+      if (entity == null || stem == null) continue;
+      entityStemMap.putIfAbsent(entity, () => <int>{}).add(stem);
+    }
+
+    final result = <String>[];
+
+    // 1. 기존 개체의 빠진 줄기 추가
+    for (final entity in entityStemMap.keys) {
+      final existingStems = entityStemMap[entity]!;
+      for (int stem = 1; stem <= stemCount; stem++) {
+        if (!existingStems.contains(stem)) {
+          result.add('$entity-$stem');
+        }
+      }
+    }
+
+    // 2. 다음 개체 번호의 모든 줄기 추가
+    final maxEntity =
+        entityStemMap.isEmpty
+            ? 0
+            : entityStemMap.keys.reduce((a, b) => a > b ? a : b);
+    final nextEntity = maxEntity + 1;
+    for (int stem = 1; stem <= stemCount; stem++) {
+      result.add('$nextEntity-$stem');
+    }
+
+    return result;
+  }
+
+  void addStem(BuildContext context) async {
+    final entityStemOptions = getAvailableEntityStemOptions(
+      existing: paprika.entityNames,
+    );
+    final selectedEntityStem = await showAddEntityDialog(
+      context: context,
+      entities: entityStemOptions,
+      title: '줄기 추가',
+    );
+    if (selectedEntityStem != null) {
+      final parts = selectedEntityStem.split('-');
+      if (parts.length == 2) {
+        final entityNumber = int.parse(parts[0]);
+        final stemNumber = int.parse(parts[1]);
+        (paprika as Paprika).addStem(entityNumber, stemNumber);
+        refresh();
+      }
+    }
+  }
+
+  Widget pageDropdown(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -375,10 +204,10 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               fontWeight: FontWeight.bold,
             ),
             items: List.generate(
-              _items.length,
+              stemNames.length,
               (index) => DropdownMenuItem<int>(
                 value: index,
-                child: Center(child: Text(_items[index])),
+                child: Center(child: Text(stemNames[index])),
               ),
             ),
             onChanged: (int? newIndex) {
@@ -388,7 +217,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 });
                 // 페이지 이동
                 _pageController.animateToPage(
-                  newIndex,
+                  _currentPage,
                   duration: Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
@@ -396,7 +225,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             },
           ),
         ),
-        _currentPage + stemCount < allStems.length
+        _currentPage + stemCount < stemNames.length
             ? Expanded(
               flex: 2,
               child: IconButton(
@@ -415,7 +244,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               ),
             )
             : Spacer(flex: 2),
-        _currentPage + stemCount < allStems.length && isEditMode
+        _currentPage + stemCount < stemNames.length
             ? Expanded(
               flex: 4,
               child: ElevatedButton.icon(
@@ -436,13 +265,17 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: () async {
-                  deleteDialog();
+                  showDeleteConfirmDialog(
+                    context: context,
+                    description: '${stemNames[_currentPage]}개체',
+                    hintText: farmName,
+                  );
                 },
               ),
             )
             : Spacer(flex: 2),
         SizedBox(width: 8),
-        _currentPage >= allStems.length - stemCount && isEditMode
+        _currentPage >= stemNames.length - stemCount
             ? Expanded(
               flex: 4,
               child: ElevatedButton.icon(
@@ -463,7 +296,15 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: () async {
-                  _addStem(int.parse(_currentStem["entity_number"]) + 1);
+                  addStem(context);
+                  final lastIndex = stemNames.length - stemCount;
+                  if (_pageController.hasClients) {
+                    _pageController.animateToPage(
+                      lastIndex,
+                      duration: const Duration(milliseconds: 100),
+                      curve: Curves.ease,
+                    );
+                  }
                 },
               ),
             )
@@ -472,17 +313,6 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
         SizedBox(width: 8),
       ],
     );
-  }
-
-  Future<void> _updateNodeStatus(
-    DocumentReference nodeRef,
-    String newStatus,
-  ) async {
-    try {
-      await nodeRef.update({'status': newStatus});
-    } catch (e) {
-      print('상태 업데이트 실패: $e');
-    }
   }
 
   Widget _nodeItem(
@@ -501,7 +331,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
 
         final node = snapshot.data!.data()!;
         String status = node['status'] as String;
-        final number = node['마디번호'];
+        final number = node['nodeNumber'] as int;
         final screenHeight = MediaQuery.of(context).size.height;
         final List<String> statuses = ['개화', '착과', '열매', '수확', '낙과'];
 
@@ -548,9 +378,12 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                             groupValue: status,
                             onChanged: (value) async {
                               if (value == null) return;
-                              await _updateNodeStatus(nodeRef, value);
+                              await (paprika as Paprika).updateNodeStatus(
+                                nodeRef,
+                                value,
+                              );
                               setState(() {
-                                status = value; // UI 상태도 같이 변경!
+                                status = value;
                               });
                             },
                             visualDensity: VisualDensity.compact,
@@ -589,8 +422,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               }
               final nodes = snapshot.data!.docs;
               return ListView.builder(
-                itemCount:
-                    isEditMode ? nodes.length + 1 : nodes.length, // 마지막에 버튼 추가
+                itemCount: nodes.length + 1,
                 itemBuilder: (context, index) {
                   if (index == nodes.length) {
                     // 마지막에 추가 버튼
@@ -621,6 +453,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
           child: ElevatedButton.icon(
             icon: Icon(
               Icons.assignment,
+
               color: const Color.fromARGB(255, 119, 41, 96),
             ),
             label: Text(
@@ -639,7 +472,16 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               ),
             ),
             onPressed: () async {
-              EnterBasicSurvey();
+              final result = await showBasicSurveyInputDialog(
+                context: context,
+                crop: paprika,
+              );
+              if (result != null) {
+                paprika.basicSurvey = result;
+                // Firestore 저장, 상태 업데이트 등 추가 작업
+              } else {
+                print('사용자가 취소했습니다.');
+              }
             },
           ),
         ),
@@ -655,7 +497,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               flex: 3,
               child: Center(
                 child: Text(
-                  '${_currentStem["entity_number"]}-${_currentStem["stem_number"]} 개체',
+                  '$stemNames[_currentPage]',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -668,32 +510,38 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
         ),
         SizedBox(width: 8),
         // 오른쪽 삭제 버튼
-        isEditMode
-            ? Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                icon: Icon(Icons.add, color: Colors.white),
-                label: Text(
-                  '업로드',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 181, 214, 233),
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), // ← 원하는 둥글기 값
-                  ),
-                ),
-                onPressed: () async {
-                  _processAndUpload(context);
-                },
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            icon: Icon(Icons.add, color: Colors.white),
+            label: Text(
+              '업로드',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.black,
               ),
-            )
-            : Spacer(flex: 2),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 181, 214, 233),
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10), // ← 원하는 둥글기 값
+              ),
+            ),
+            onPressed: () async {
+              final group =
+                  Provider.of<provider.SettingsProvider>(
+                    context,
+                    listen: false,
+                  ).selectedGroup;
+              farm.processGDriveData(group);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('데이터 업로드 완료!')));
+            },
+          ),
+        ),
         SizedBox(width: 8),
         Expanded(
           flex: 2,
@@ -724,7 +572,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
 
   Map<String, dynamic> getStemCounts(DocumentSnapshot stemDoc) {
     Map<String, dynamic> map = Map<String, dynamic>.from({
-      "개화마디": null,
+      "flowerNode": null,
       "착과마디": null,
       "열매마디": null,
       "수확마디": null,
@@ -737,196 +585,15 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
     return map;
   }
 
-  Future<String> getOrCreateFolder(
-    drive.DriveApi driveApi,
-    String folderName, {
-    String? parentId,
-  }) async {
-    // 1. 폴더 존재 확인
-    final q =
-        "name='${folderName}' and mimeType='application/vnd.google-apps.folder'" +
-        (parentId != null ? " and '$parentId' in parents" : "");
-    final folderList = await driveApi.files.list(q: q);
-    if (folderList.files != null && folderList.files!.isNotEmpty) {
-      return folderList.files!.first.id!;
-    }
-    // 2. 폴더가 없으면 생성
-    final folder =
-        drive.File()
-          ..name = folderName
-          ..mimeType = 'application/vnd.google-apps.folder'
-          ..parents = parentId != null ? [parentId] : null;
-    final created = await driveApi.files.create(folder);
-    return created.id!;
-  }
-
-  Future<void> _uploadToGoogleSheets(List<List<dynamic>> data) async {
-    final _credentials = dotenv.env['GOOGLE_CREDENTIALS']!;
-
-    final accountCredentials = ServiceAccountCredentials.fromJson(
-      json.decode(_credentials),
-    );
-    final scopes = [
-      drive.DriveApi.driveScope,
-      sheet.SheetsApi.spreadsheetsScope,
-    ];
-    final client = await clientViaServiceAccount(accountCredentials, scopes);
-
-    // 1. 드라이브 API 인스턴스
-    final driveApi = drive.DriveApi(client);
-    final group =
-        Provider.of<provider.SettingsProvider>(
-          context,
-          listen: false,
-        ).selectedGroup;
-    // 2. '3조' 폴더 찾기
-    final folderList = await driveApi.files.list(
-      q: "name='$group조' and mimeType='application/vnd.google-apps.folder'",
-    );
-    if (folderList.files == null || folderList.files!.isEmpty)
-      throw Exception("$group조 폴더를 찾을 수 없습니다.");
-    final folder3Id = folderList.files!.first.id!;
-
-    // 3. '3조생육원본' 하위폴더 찾기
-    final subFolderList = await driveApi.files.list(
-      q: "name='$group조생육원본' and mimeType='application/vnd.google-apps.folder' and '${folder3Id}' in parents",
-    );
-    if (subFolderList.files == null || subFolderList.files!.isEmpty)
-      throw Exception("$group조생육원본 폴더를 찾을 수 없습니다.");
-    final subFolderId = subFolderList.files!.first.id!;
-
-    // 4. 시트 생성
-    final file = drive.File();
-    file.name = '${farm["farmName"]}생육원본';
-    file.mimeType = 'application/vnd.google-apps.spreadsheet';
-    file.parents = [subFolderId];
-    final createdFile = await driveApi.files.create(file);
-
-    final spreadsheetId = createdFile.id!;
-    print('생성된 시트 ID: $spreadsheetId');
-
-    // 5. 시트에 데이터 입력
-    final sheetsApi = sheet.SheetsApi(client);
-    final valueRange = sheet.ValueRange.fromJson({'values': data});
-    await sheetsApi.spreadsheets.values.append(
-      valueRange,
-      spreadsheetId,
-      'Sheet1',
-      valueInputOption: 'USER_ENTERED',
-    );
-
-    client.close();
-    // 여기에 구글 시트 API 연동 코드 구현
-    // 예: Google Sheets API 패키지 사용
-  }
-
-  Future<void> _processAndUpload(BuildContext context) async {
-    final firestore = FirebaseFirestore.instance;
-    final batch = firestore.batch();
-    final today = DateFormat('MM/dd').format(DateTime.now());
-    final List<String> statuses = ['개화', '착과', '열매', '수확'];
-    List<List<dynamic>> sheetData = [];
-    sheetData.add([
-      "농가명",
-      "조사일자",
-      "개체번호",
-      "줄기번호",
-      "초장",
-      "생장길이",
-      "엽수",
-      "엽장",
-      "엽폭",
-      "줄기굵기",
-      "화방높이",
-      "본주구분",
-      "개화마디",
-      "착과마디",
-      "열매마디",
-      "수확마디",
-      "개화수",
-      "착과수",
-      "열매수",
-      "수확수수",
-    ]);
-    for (final entity in entities.docs) {
-      final stemsSnapshot =
-          await farmRef
-              .collection('개체')
-              .doc(entity["개체번호"].toString())
-              .collection('줄기')
-              .orderBy('줄기번호')
-              .get();
-
-      for (final stemDoc in stemsSnapshot.docs) {
-        // 2. 각 줄기의 마디 데이터 처리
-
-        Map<String, dynamic> counts = getStemCounts(stemDoc);
-        for (final String status in statuses) {
-          final emptyNodes =
-              await stemDoc.reference
-                  .collection('nodes')
-                  .where('status', isEqualTo: status)
-                  .where(status, isEqualTo: null)
-                  .get();
-          for (final nodeDoc in emptyNodes.docs) {
-            batch.update(nodeDoc.reference, {status: today});
-          }
-          counts["$status수"] =
-              (counts["$status수"] ?? 0) + emptyNodes.docs.length;
-
-          final nodesQuery =
-              await stemDoc.reference
-                  .collection('nodes')
-                  .where('status', isEqualTo: status)
-                  .orderBy('마디번호', descending: true)
-                  .limit(1)
-                  .get();
-          int order = 0;
-          if (nodesQuery.docs.isNotEmpty) {
-            final node = nodesQuery.docs.first;
-            order = node.data()['마디번호'] ?? 0;
-          }
-          counts["$status마디"] = order;
-          // 5. 최대값 마디 찾기
-        }
-        batch.update(stemDoc.reference, counts);
-        List<dynamic> columndata = [
-          farm["farmName"],
-          today,
-          entity["개체번호"],
-          (stemDoc.data())["줄기번호"],
-          "",
-          basicSurvey["생장길이"],
-          basicSurvey["엽수"],
-          basicSurvey["엽장"],
-          basicSurvey["엽폭"],
-          basicSurvey["줄기굵기"],
-          basicSurvey["화방높이"],
-          "본주",
-        ];
-        columndata.addAll(counts.values.toList());
-        await batch.commit();
-        sheetData.add(columndata);
-      }
-    }
-
-    // 9. 구글 시트 업로드 (별도 구현 필요)
-    _uploadToGoogleSheets(sheetData);
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('데이터 업로드 완료!')));
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (allStems.isEmpty) {
+    if (paprika.allEntities.isEmpty) {
       return Scaffold(
-        appBar: CustomAppBar(title: '${farm["farmName"]} 농가 마디조사'),
-        body: Center(
-          child:
-              isEditMode
-                  ? ElevatedButton.icon(
+        appBar: CustomAppBar(title: '$farmName 농가 마디조사'),
+        body:
+            stemNames.isNotEmpty
+                ? Center(
+                  child: ElevatedButton.icon(
                     icon: Icon(
                       Icons.add,
                       color: Color.fromARGB(255, 138, 37, 37),
@@ -943,29 +610,28 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                       backgroundColor: const Color.fromARGB(255, 234, 240, 183),
                     ),
                     onPressed: () async {
-                      _addStem(1);
+                      addStem(context);
                     },
-                  )
-                  : Center(child: Text("개체가 없습니다.")),
-        ),
+                  ),
+                )
+                : Center(child: Text("개체가 없습니다.")),
       );
     }
     return Scaffold(
-      appBar: CustomAppBar(title: '${farm["farmName"]} 농가 마디조사'),
+      appBar: CustomAppBar(title: '$farmName} 농가 마디조사'),
       body: Column(
         children: [
-          Expanded(flex: 1, child: _pageDropdown()),
+          Expanded(flex: 1, child: pageDropdown(context)),
           Expanded(
             flex: 10,
             child: PageView.builder(
               controller: _pageController,
-              itemCount: allStems.length,
+              itemCount: paprika.allEntities.length,
               onPageChanged: (int pageIndex) {
                 setState(() {
-                  if (pageIndex < allStems.length) {
+                  if (pageIndex < paprika.allEntities.length) {
                     _currentPage = pageIndex; // 마지막 페이지
                   } // 페이지가 바뀌면 드롭다운 선택값 변경
-                  _loadStemData(pageIndex);
                 });
               },
               itemBuilder: (ctx, index) {

@@ -178,7 +178,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
 
     if (_photos[index] != null) {
       final saveFolder = Directory(
-        '${externalStorageDirectory.path}/${today}_${city}_${crop}_${name}',
+        '${externalStorageDirectory.path}/${today}_${city}_${crop}_$name',
       );
       if (!saveFolder.existsSync()) {
         saveFolder.createSync();
@@ -205,14 +205,12 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     try {
       // 1. Google 로그인
       final GoogleDriveClass gdrive = GoogleDriveClass.instance;
-      final GoogleSignInAccount? account = await gdrive.googleSignIn.signIn();
-
-      if (account == null) return;
-
-      // 2. Drive API 클라이언트 생성
-      final authHeaders = await account.authHeaders;
-      final client = GoogleAuthClient(header: authHeaders);
-      final driveApi = drive.DriveApi(client);
+      await gdrive.signIn();
+      if (gdrive.driveApi == null) {
+        Exception('Google Drive API에 로그인하지 못했습니다.');
+        return;
+      }
+      final driveApi = gdrive.driveApi;
       showDialog(
         context: context,
         barrierDismissible: false, // 다이얼로그 외부 클릭 방지
@@ -239,7 +237,11 @@ class _CropPhotoState extends State<CropPhotoScreen> {
             context,
             listen: false,
           ).selectedGroup;
-      final rootFolderId = await gdrive.createFolder(driveApi, "$group조", null);
+      final rootFolderId = await gdrive.createFolder(
+        driveApi!,
+        "$group조",
+        null,
+      );
       final imageFolderId = await gdrive.createFolder(
         driveApi,
         "$group조_생육사진",
