@@ -78,7 +78,7 @@ dependencies:
   firebase_storage: ^12.4.5
   flutter_cache_manager: ^3.4.1
   cached_network_image: ^3.4.1
-  syncfusion_flutter_xlsio: ^29.2.5
+  logger: ^2.5.0
 
 flutter_launcher_icons:
   android: true

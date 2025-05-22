@@ -26,17 +26,20 @@ class CropField {
 
 abstract class Crop {
   String name;
-  DocumentReference<Map<String, dynamic>> farmRef;
-  Crop({required this.name, required this.farmRef});
+  String farmId;
+  Crop({required this.name, required this.farmId});
 
   DocumentReference<Map<String, dynamic>>? currentEntity;
-  List<Map<String, dynamic>> allEntities=[];
-  List<String> entityNames=[];
+  List<Map<String, dynamic>> allEntities = [];
+  List<String> entityNames = [];
   final today = DateFormat('MM/dd').format(DateTime.now());
 
   List<CropField> get fields => [];
+  List<String> get imageTitles => [];
   Map<String, dynamic> basicSurvey = {};
-
+  Future<void> init()async{
+    
+  };
   void addEntity(int entityNumber) {
     final entityRef = farmRef.collection(name).doc(entityNumber.toString());
   }
@@ -47,44 +50,4 @@ abstract class Crop {
   }
 
   Future<List<List<dynamic>>> processGDriveData(int group, String farmName);
-
-  void uploadToGoogleSheets(int group,List<List<dynamic>>sheetData)async{
-    final GoogleDriveClass gdrive = GoogleDriveClass.instance;
-    await gdrive.signIn();
-      if (gdrive.driveApi == null) {
-        Exception('Google Drive API에 로그인하지 못했습니다.');
-        return;
-      }
-      final driveApi = gdrive.driveApi;
-      final rootFolderId = await gdrive.createFolder(
-        driveApi!,
-        "$group조",
-        null,
-      );
-      final dataFolderId = await gdrive.createFolder(
-        driveApi,
-        "$group조_생육원본",
-        rootFolderId,
-      );
-      
-      final file = drive.File();
-    file.name = '$today_';
-    file.mimeType = 'application/vnd.google-apps.spreadsheet';
-    file.parents = [subFolderId];
-    final createdFile = await driveApi.files.create(file);
-
-    final spreadsheetId = createdFile.id!;
-    print('생성된 시트 ID: $spreadsheetId');
-
-    // 5. 시트에 데이터 입력
-    final sheetsApi = sheet.SheetsApi(client);
-    final valueRange = sheet.ValueRange.fromJson({'values': data});
-    await sheetsApi.spreadsheets.values.append(
-      valueRange,
-      spreadsheetId,
-      'Sheet1',
-      valueInputOption: 'USER_ENTERED',
-    );
-
-    client.close();
 }

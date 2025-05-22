@@ -56,16 +56,12 @@ class GoogleDriveClass {
     driveApi = drive.DriveApi(googleAuthClient);
   }
 
-  Future<String> createFolder(
-    drive.DriveApi driveApi,
-    String name,
-    String? parentId,
-  ) async {
+  Future<String> createFolder(String name, String? parentId) async {
     final query =
         parentId != null
             ? "'$parentId' in parents and name='$name' and mimeType='application/vnd.google-apps.folder'"
             : "name='$name' and mimeType='application/vnd.google-apps.folder' and 'root' in parents";
-    final response = await driveApi.files.list(q: query);
+    final response = await driveApi!.files.list(q: query);
 
     if (response.files?.isNotEmpty ?? false) {
       return response.files!.first.id!;
@@ -76,25 +72,24 @@ class GoogleDriveClass {
             ..mimeType = "application/vnd.google-apps.folder"
             ..parents = parentId != null ? [parentId] : null;
 
-      final folder = await driveApi.files.create(folderMetadata);
+      final folder = await driveApi!.files.create(folderMetadata);
       return folder.id!;
     }
   }
 
   Future<void> uploadPhotoToDrive({
-    required drive.DriveApi driveApi,
     required String folderId,
     required String fileName,
     required File imageFile,
   }) async {
-    final existingFiles = await driveApi.files.list(
+    final existingFiles = await driveApi!.files.list(
       q: "'$folderId' in parents and name='$fileName'",
     );
 
     if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
       // 기존 파일 삭제 (덮어쓰기)
       for (var file in existingFiles.files!) {
-        await driveApi.files.delete(file.id!);
+        await driveApi!.files.delete(file.id!);
       }
     }
     final file =
@@ -104,7 +99,7 @@ class GoogleDriveClass {
 
     final media = drive.Media(imageFile.openRead(), imageFile.lengthSync());
 
-    await driveApi.files.create(file, uploadMedia: media);
+    await driveApi!.files.create(file, uploadMedia: media);
   }
 
   Future<drive.File?> upLoad({
@@ -162,7 +157,8 @@ class GoogleDriveClass {
   Future<String> createSpreadsheetAndInsertData({
     required String fileName,
     required List<List<dynamic>> data,
-    String? folderId,
+    required int group,
+    String folderId = "",
   }) async {
     try {
       // 1. Google 로그인 확인
@@ -170,7 +166,8 @@ class GoogleDriveClass {
         await signIn();
         if (driveApi == null) throw Exception('Google Drive API 연결 실패');
       }
-
+      final rootFolderId = await createFolder("$group조", null);
+      final dataFolderId = await createFolder("$group조_생육원본", rootFolderId);
       // 2. 새 스프레드시트 생성
       final spreadsheet =
           Spreadsheet()..properties = SpreadsheetProperties(title: fileName);
@@ -179,10 +176,8 @@ class GoogleDriveClass {
       final spreadsheetId = created.spreadsheetId!;
 
       // 3. 폴더로 이동 (폴더 ID가 제공된 경우)
-      if (folderId != null) {
-        final file = drive.File()..parents = [folderId];
-        await driveApi!.files.update(file, spreadsheetId);
-      }
+      final file = drive.File()..parents = [dataFolderId];
+      await driveApi!.files.update(file, spreadsheetId);
 
       // 4. 데이터 삽입
       final valueRange =

@@ -5,9 +5,18 @@ import 'crop.dart';
 class Paprika extends Crop {
   final int stemCount;
   Paprika({
-    required DocumentReference<Map<String, dynamic>> farmRef,
+    required super.name,
+    required super.farmId,
     required this.stemCount,
-  }) : super(name: "파프리카", farmRef: farmRef);
+  });
+
+  factory Paprika.fromMap(Map<String, dynamic> map) {
+    return Paprika(
+      name: map["name"],
+      farmId: map["farmId"],
+      stemCount: map["stemCount"],
+    );
+  }
 
   @override
   get fields => [
@@ -31,8 +40,8 @@ class Paprika extends Crop {
     "과폭": null,
     "과고": null,
   };
-
-  final List<String> imageTitles = [
+  @override
+  List<String> get imageTitles => [
     "재배전경",
     "1-1 개체생장점 사진",
     "1-1 개체 마디 진행상황",
@@ -46,6 +55,25 @@ class Paprika extends Crop {
 
   final List<String> statuses = ['flower', 'fruitSet', 'fruit', 'harvest'];
   // #region 줄기
+
+  Future<void> init() async {
+    // 기본 개체(1번) 생성
+    final individualRef = farmRef.collection('entity').doc('1');
+    individualRef.set({'entity_number': 1});
+    // stem_count만큼 줄기 생성
+    for (int stemNum = 1; stemNum <= stemCount; stemNum++) {
+      final stemRef = individualRef
+          .collection('stem_number')
+          .doc(stemNum.toString());
+      ;
+      stemRef.set({'stem_number': stemNum});
+      // 각 줄기에 기본 마디(1번) 생성
+      final nodeRef = stemRef.collection('node').doc('1');
+      final Map<String, dynamic> nodeData = {...nodeInfo, 'node_number': 1};
+      await nodeRef.set(nodeData);
+    }
+  }
+
   Future<void> loadAllStems() async {
     QuerySnapshot<Map<String, dynamic>> entities =
         await farmRef.collection('entity').orderBy('entity_number').get();
@@ -75,21 +103,14 @@ class Paprika extends Crop {
   }
 
   Map<String, dynamic> getStemInfo(DocumentSnapshot stemDoc) {
-    Map<String, dynamic> map = Map<String, dynamic>.from({
-      "flowerNode": null,
-      "fruitSetNode": null,
-      "fruitNode": null,
-      "harvestNode": null,
+    Map<String, dynamic> map = <String, dynamic>{};
+    statuses.map((status) {
+      map['${status}Number'] = // 또는 '${status}수'로 키를 바꿀 수도 있음
+          (stemDoc.data() as Map<String, dynamic>)['$status수'] ?? 0;
+      map['${status}Node'] = null;
     });
-    statuses.map(
-      (status) =>
-          map['$status수'] = // 또는 '${status}수'로 키를 바꿀 수도 있음
-              (stemDoc.data() as Map<String, dynamic>)['$status수'] ?? 0,
-    );
     return map;
   }
-
-  Map<String, dynamic> calculateStemInfo()
 
   void addStem(int entityNum, int stemNum) async {
     final individualRef = farmRef
@@ -196,10 +217,9 @@ class Paprika extends Crop {
     sheetData.add([columnName]);
     for (final stem in allEntities) {
       final stemDoc = stem["stemDoc"] as DocumentSnapshot<Map<String, dynamic>>;
-      final entity = stem["entityNumber"];
       // 2. 각 줄기의 마디 데이터 처리
 
-      Map<String, dynamic> counts = getStemInfo(stem["stemDoc"]);
+      Map<String, dynamic> stemInfo = getStemInfo(stem["stemDoc"]);
       for (final String status in statuses) {
         final emptyNodes =
             await stemDoc.reference
@@ -210,7 +230,8 @@ class Paprika extends Crop {
         for (final nodeDoc in emptyNodes.docs) {
           batch.update(nodeDoc.reference, {status: today});
         }
-        counts["$status수"] = (counts["$status수"] ?? 0) + emptyNodes.docs.length;
+        stemInfo["$status수"] =
+            (stemInfo["$status수"] ?? 0) + emptyNodes.docs.length;
 
         final nodesQuery =
             await stemDoc.reference
@@ -222,13 +243,13 @@ class Paprika extends Crop {
         int order = 0;
         if (nodesQuery.docs.isNotEmpty) {
           final node = nodesQuery.docs.first;
-          order = node.data()['마디번호'] ?? 0;
+          order = node.data()['nodeNumber'] ?? 0;
         }
-        counts["$status마디"] = order;
+        stemInfo["$status마디"] = order;
         // 5. 최대값 마디 찾기
       }
-      batch.update(stemDoc.reference, counts);
-      List<dynamic> columndata = [
+      batch.update(stemDoc.reference, stemInfo);
+      List<String> columndata = [
         farmName,
         today,
         stem["entityNumber"],
@@ -241,8 +262,15 @@ class Paprika extends Crop {
         basicSurvey["줄기굵기"],
         basicSurvey["화방높이"],
         "본주",
+        stemInfo["flowerNode"],
+        stemInfo["fruitSetNode"],
+        stemInfo["fruitNode"],
+        stemInfo["harvestNode"],
+        stemInfo["flowerNumber"],
+        stemInfo["fruitSetNumber"],
+        stemInfo["fruitNumber"],
+        stemInfo["harvestNumber"],
       ];
-      columndata.addAll(counts.values.toList());
 
       sheetData.add(columndata);
     }

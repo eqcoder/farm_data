@@ -8,10 +8,12 @@ import 'package:map_launcher/map_launcher.dart';
 import 'survey_screen/growth_survey.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../farm/schema.dart';
 
 class BusinessTripScreen extends StatefulWidget {
+  const BusinessTripScreen({super.key});
   @override
-  _BusinessTripScreenState createState() => _BusinessTripScreenState();
+  State<BusinessTripScreen> createState() => _BusinessTripScreenState();
 }
 
 class _BusinessTripScreenState extends State<BusinessTripScreen> {
@@ -20,9 +22,9 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
   int selectedFarmIndex = 0;
   String weatherInfo = "날씨 정보를 불러오는 중...";
   String farmAddress = ""; // 예제 주소 (실제 데이터 사용 가능)
-  List<Map<String, dynamic>> farmList = [];
+  List<Farm> farmList = [];
   List<String> farmNames = [];
-  Map<String, dynamic> farm = <String, dynamic>{};
+  late Farm farm;
   late String uid;
   late DocumentReference<Map<String, dynamic>> userRef;
 
@@ -51,16 +53,12 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
       farmList =
           allFarms.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            return {
+            return Farm.fromMap({
               'id': doc.id, // 문서 ID 추가
               ...data, // 나머지 필드
-            };
+            });
           }).toList();
-      farmNames =
-          farmList
-              .map((doc) => doc['farmName'] as String?)
-              .whereType<String>()
-              .toList();
+      farmNames = farmList.map((doc) => doc.name).whereType<String>().toList();
     });
     if (farmNames.isNotEmpty) {
       selectedFarm = farmNames[selectedFarmIndex];
@@ -73,10 +71,8 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
 
     if (status.isGranted) {
       // 권한 허용됨: 위치 정보 사용 가능
-      print("위치 권한 허용됨");
     } else if (status.isDenied) {
       // 권한 거부됨: 안내 메시지 등 처리
-      print("위치 권한 거부됨");
     } else if (status.isPermanentlyDenied) {
       // 영구적으로 거부됨: 설정에서 직접 허용 유도
       openAppSettings();
@@ -127,7 +123,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                   Spacer(flex: 1),
                   Expanded(
                     flex: 2,
-                    child: Container(
+                    child: SizedBox(
                       height: 50, // 버튼 높이 설정
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -153,8 +149,6 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                                   selectedFarmIndex = index;
                                   selectedFarm = farmNames[selectedFarmIndex];
                                   farm = farmList[selectedFarmIndex];
-                                  farm["id"] =
-                                      farmList[selectedFarmIndex]["id"];
                                 });
                               },
                               child: Text(
@@ -171,7 +165,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      '작물: ${farm["crop"]}',
+                      '작물: ${farm.crop.name}',
                       style: TextStyle(
                         fontSize: 25,
                         fontWeight: FontWeight.w600,
@@ -203,7 +197,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                                   ),
                                   SizedBox(width: 10),
                                   Text(
-                                    '${farm["address"]}',
+                                    farm.address,
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: const Color.fromARGB(
@@ -242,11 +236,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                                 _loadingMap
                                     ? null
                                     : () async {
-                                      _openNaverMaps(
-                                        context,
-                                        farm["address"],
-                                        "",
-                                      );
+                                      _openNaverMaps(context, farm.address, "");
                                     },
                             child: Column(
                               mainAxisSize: MainAxisSize.max,

@@ -113,9 +113,8 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
     gdrive.signIn();
     if (gdrive.driveApi != null) {
       final driveApi = gdrive.driveApi!;
-      final rootFolderId = await gdrive.createFolder(driveApi, "$group조", null);
+      final rootFolderId = await gdrive.createFolder("$group조", null);
       final dataFolderId = await gdrive.createFolder(
-        driveApi,
         "$group조_생육원본",
         rootFolderId,
       );
@@ -158,7 +157,7 @@ class _AndroidEnterDataWidgetState extends State<AndroidEnterDataLayout> {
       ['김철수', '25', '남'],
     ];
 
-    await sheetsApi.spreadsheets.values.append(
+    await sheetsApi!.spreadsheets.values.append(
       sheets.ValueRange.fromJson({'values': data}),
       _spreadsheetId!,
       'A1',

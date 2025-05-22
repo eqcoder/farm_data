@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../crop/schema.dart' as schema;
 import '../business_trip/survey_screen/growth_survey.dart';
+import '../farm/schema.dart';
+import '../crop/crop_factory.dart';
+import '../crop/crops.dart';
 
 class FarmInfoScreen extends StatefulWidget {
   @override
@@ -10,23 +13,21 @@ class FarmInfoScreen extends StatefulWidget {
 }
 
 class _FarmInfoScreenState extends State<FarmInfoScreen> {
-  Map<String, dynamic>? selectedFarm;
+  Farm? selectedFarm;
   final _formKey = GlobalKey<FormState>();
   TextEditingController _nameController = TextEditingController();
   String? _crop;
   int? _selectedStemCount;
   final List<int> _stemCounts = [1, 2, 3];
   final TextEditingController _farmNameController = TextEditingController();
-  TextEditingController _cropController = TextEditingController();
-  TextEditingController _addressController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   int? selectedIndex;
   late String uid;
   late DocumentReference<Map<String, dynamic>> userRef;
-  late DocumentReference<Map<String, dynamic>> farmRef;
 
-  List<Map<String, dynamic>> myFarms = [];
-  List<Map<String, dynamic>> managedFarms = [];
-  List<Map<String, dynamic>> allFarms = [];
+  List<Farm> myFarms = [];
+  List<Farm> managedFarms = [];
+  List<Farm> allFarms = [];
 
   bool isLoading = true;
   @override
@@ -35,7 +36,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     loadFarms();
     uid = FirebaseAuth.instance.currentUser!.uid;
     userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-    farmRef = FirebaseFirestore.instance.collection('farms').doc();
   }
 
   String _extractCity(String address) {
@@ -58,14 +58,15 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     final farmsSnapshot =
         await FirebaseFirestore.instance.collection('farms').get();
 
-    List<Map<String, dynamic>> all = [];
-    List<Map<String, dynamic>> my = [];
-    List<Map<String, dynamic>> managed = [];
+    List<Farm> all = [];
+    List<Farm> my = [];
+    List<Farm> managed = [];
 
     for (final doc in farmsSnapshot.docs) {
       final data = doc.data();
       data['id'] = doc.id;
-      all.add(data);
+      Crop crop=CropFactory.fromMap({'name':data["crop"], 'stemCount':data["stemCount"], ''})
+      all.add(Farm.fromMap(data));
 
       final ownerRef = data['owner'] as DocumentReference;
       final authorizedRefs =
@@ -75,21 +76,21 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
       // 1. 소유주 확인 (DocumentReference의 ID가 현재 UID와 같은지)
       if (ownerRef.id == uid) {
-        my.add(data);
+        my.add(Farm.fromMap(data));
       }
       // 2. 권한 유저 확인 (DocumentReference 리스트의 ID 중에 현재 UID가 있는지)
       else if (authorizedRefs.any((ref) => ref.id == uid)) {
-        managed.add(data);
+        managed.add(Farm.fromMap(data));
       }
     }
 
     // 전체 농가: 내가 소유/관리하는 농가를 제외한 나머지
     final myOrManagedIds = {
-      ...my.map((e) => e['id']),
-      ...managed.map((e) => e['id']),
+      ...my.map((e) => e.id),
+      ...managed.map((e) => e.id),
     };
     final others =
-        all.where((farm) => !myOrManagedIds.contains(farm['id'])).toList();
+        all.where((farm) => !myOrManagedIds.contains(farm.id)).toList();
 
     setState(() {
       myFarms = my;
@@ -107,10 +108,9 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   }
 
   _openFarmDialog() {
-    final List<String> crops = schema.cropSchema.keys.toList();
+    final List<String> crops = cropFactoryMap.keys.toList();
     _nameController.clear();
     _addressController.clear();
-    selectedFarm = null;
 
     showDialog(
       context: context,
@@ -196,53 +196,35 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
   }
 
   _saveFarm() async {
+    DocumentReference<Map<String, dynamic>> farmRef =
+        FirebaseFirestore.instance.collection('farms').doc();
     String farmName = _nameController.text;
-    String crop = _crop!;
+    String cropName = _crop!;
     String address = _addressController.text;
     String city = _extractCity(address);
-    int stem_count = _selectedStemCount!;
-    if (selectedFarm == null) {
-      // 기본 데이터 저장
-      await farmRef.set({
-        'owner': FirebaseFirestore.instance.collection('users').doc(uid),
-        'authorizedUsers': [],
-        'farmName': farmName,
-        'crop': crop,
-        'address': address,
-        'city': city,
-        'stem_count': stem_count,
-        'createdAt': FieldValue.serverTimestamp(),
-        'photosURLs': List.filled(
-          (schema.cropSchema[crop] as Map<String, dynamic>)['이미지제목'].length,
-          '',
-        ),
-      });
+    int stemCount = _selectedStemCount!;
+    Crop crop = CropFactory.fromMap(
+      Map.from({"farmRef": farmRef, "stemCount": stemCount, "name": cropName}),
+    );
+    // 기본 데이터 저장
+    await farmRef.set({
+      'owner': FirebaseFirestore.instance.collection('users').doc(uid),
+      'authorizedUsers': [],
+      'name': farmName,
+      'crop': cropName,
+      'address': address,
+      'city': city,
+      'createdAt': FieldValue.serverTimestamp(),
+      'photosURLs': List.filled(crop.imageTitles.length, ''),
+    });
 
-      // 기본 개체(1번) 생성
-      final individualRef = farmRef.collection('entity').doc('1');
-      individualRef.set({'entity_number': 1});
-      // stem_count만큼 줄기 생성
-      for (int stemNum = 1; stemNum <= stem_count; stemNum++) {
-        final stemRef = individualRef
-            .collection('stem_number')
-            .doc(stemNum.toString());
-        ;
-        stemRef.set({'stem_number': stemNum});
-        // 각 줄기에 기본 마디(1번) 생성
-        final nodeRef = stemRef.collection('node').doc('1');
-        final Map<String, dynamic> nodeData = {
-          ...(schema.cropSchema[crop] as Map<String, dynamic>)['마디정보'],
-          'node_number': 1,
-        };
-        await nodeRef.set(nodeData);
-      }
-    } else {}
+    await crop.init();
 
     loadFarms(); // 데이터 다시 로드
   }
 
   _confirmDelete(BuildContext context) async {
-    String name = selectedFarm!['farmName'];
+    String name = selectedFarm!.name;
     bool isMatched = false;
     final confirm = await showDialog<bool>(
       context: context,
@@ -293,10 +275,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   onPressed: () => Navigator.of(context).pop(false),
                 ),
                 ElevatedButton(
-                  child: Text(
-                    '삭제',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
                   style: ElevatedButton.styleFrom(
                     foregroundColor: isMatched ? Colors.red : Colors.grey,
                   ),
@@ -307,6 +285,10 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                             Navigator.of(context).pop(true);
                           }
                           : null,
+                  child: Text(
+                    '삭제',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             );
@@ -315,15 +297,15 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
       },
     );
     if (confirm == true) {
-      await deleteFarm(selectedFarm!["id"]);
+      await deleteFarm(selectedFarm!.id);
     }
     loadFarms();
   }
 
-  void _showPermissionDialog(Map<String, dynamic> selectedFarm) async {
+  void _showPermissionDialog() async {
     final farmRef = FirebaseFirestore.instance
         .collection('farms')
-        .doc(selectedFarm["id"]);
+        .doc(selectedFarm!.id);
     final farmSnap = await farmRef.get();
     List<DocumentReference<Map<String, dynamic>>> authorizedRefs =
         (farmSnap['authorizedUsers'] as List<dynamic>?)
@@ -338,12 +320,12 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
             farmRef: farmRef,
             authorizedUids: authorizedUids,
             onUpdate: loadFarms,
-            farmname: selectedFarm["farmName"],
+            farmname: selectedFarm!.name,
           ),
     );
   }
 
-  Widget buildDataTable(String title, List<Map<String, dynamic>> farms) {
+  Widget buildDataTable(String title, List<Farm> farms) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -363,19 +345,19 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
             rows:
                 farms.map((farm) {
                   return DataRow(
-                    selected: selectedFarm?['id'] == farm['id'],
+                    selected: selectedFarm!.id == farm.id,
                     onSelectChanged: (selected) {
                       setState(() {
                         selectedFarm = selected! ? farm : null;
                       });
                     },
                     cells: [
-                      DataCell(Text(farm['farmName'] ?? '')),
-                      DataCell(Text(farm['crop'] ?? '')),
-                      DataCell(Text(farm['address'] ?? '')),
+                      DataCell(Text(farm.name)),
+                      DataCell(Text(farm.crop.name)),
+                      DataCell(Text(farm.address)),
                       DataCell(
                         FutureBuilder<DocumentSnapshot>(
-                          future: farm['owner'].get(),
+                          future: farm.owner.get(),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
@@ -402,7 +384,6 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOwner = selectedFarm?['owner'].id == uid;
     return Scaffold(
       body: Column(
         children: [
@@ -449,11 +430,11 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                     ),
                   ),
                 SizedBox(width: 8),
-                if (selectedFarm != null && isOwner)
+                if (selectedFarm != null && myFarms.contains(selectedFarm))
                   Expanded(
                     flex: 5,
                     child: ElevatedButton(
-                      onPressed: () => _showPermissionDialog(selectedFarm!),
+                      onPressed: () => _showPermissionDialog(),
                       child: Text('권한 부여'),
                     ),
                   ),

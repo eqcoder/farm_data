@@ -14,29 +14,34 @@ import 'main_screen/windows_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Platform.isAndroid){
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform,);}
+  if (Platform.isAndroid) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
     initWindows();
     windowManager.setFullScreen(true);
     sqfliteFfiInit();
 
-  // global databaseFactory를 FFI 구현으로 설정
-  databaseFactory = databaseFactoryFfi;
+    // global databaseFactory를 FFI 구현으로 설정
+    databaseFactory = databaseFactoryFfi;
   }
   await dotenv.load(fileName: '.env');
   final settings = provider.SettingsProvider();
   await settings.loadSettings();
   // await extractData('D:/Desktop/farm/farm_data/tomato1.JPG');
 
-  runApp( MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => provider.AuthProvider()),
-        ChangeNotifierProvider(
-      create: (_) => settings,
+        ChangeNotifierProvider(create: (_) => settings),
+      ],
+      child: AgriculturalBigdataApp(),
     ),
-      ],child:AgriculturalBigdataApp()));
+  );
 }
 
 // 클래스 추
@@ -44,12 +49,13 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
     PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,       // 마우스 드래그 허용
+    PointerDeviceKind.mouse, // 마우스 드래그 허용
     PointerDeviceKind.stylus,
     PointerDeviceKind.unknown,
-    PointerDeviceKind.trackpad,    // 트랙패드도 명시적으로 추가 가능
+    PointerDeviceKind.trackpad, // 트랙패드도 명시적으로 추가 가능
   };
 }
+
 Future<void> initWindows() async {
   // `window_manager` 초기화
 
@@ -78,10 +84,14 @@ class AgriculturalBigdataApp extends StatelessWidget {
     return MaterialApp(
       scrollBehavior: AppScrollBehavior(),
       title: '농업빅데이터조사',
-      theme: settings.isDarkMode ? ThemeData.dark() : ThemeData(
-        brightness: Brightness.light, // 라이트 모드 설정
-        scaffoldBackgroundColor: Colors.white),
-      home: Platform.isAndroid?AuthWrapper():WindowsMainScreen(),
+      theme:
+          settings.isDarkMode
+              ? ThemeData.dark()
+              : ThemeData(
+                brightness: Brightness.light, // 라이트 모드 설정
+                scaffoldBackgroundColor: Colors.white,
+              ),
+      home: Platform.isAndroid ? AuthWrapper() : WindowsMainScreen(),
 
       builder: (context, child) {
         // 최신 Flutter에서는 textScaler 사용
@@ -104,12 +114,12 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Platform.isAndroid
-          ? AuthWrapper() // 안드로이드 화면
-          : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정
+      body:
+          Platform.isAndroid
+              ? AuthWrapper() // 안드로이드 화면
+              : WindowsMainScreen(), // 윈도우 화면// 스플래시 화면을 기본 화면으로 설정
       bottomNavigationBar: const BottomAppBar(
         // BottomAppBar를 사용하여 바닥에 공간 확보
         child: Padding(

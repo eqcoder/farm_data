@@ -19,62 +19,6 @@ class CropField {
 }
 
 final cropSchema = {
-  '파프리카': {
-    '개체개수': 10,
-    '이미지제목': [
-      "재배전경",
-      "1-1 개체생장점 사진",
-      "1-1 개체 마디 진행상황",
-      "pH",
-      "백엽상 내부",
-      "온습도",
-      "1 개체 근권부 사진(좌)",
-      "1개체 근권부 사진(우)",
-      "특이사항",
-    ],
-    '마디정보': {
-      "마디번호": null,
-      "status": "개화",
-      "개화": null,
-      "착과": null,
-      "열매": null,
-      "수확": null,
-      "낙과": null,
-      "과중": null,
-      "과폭": null,
-      "과고": null,
-    },
-    '기본조사': [
-      growth,
-      flowerHeight,
-      stemThikness,
-      leafCount,
-      leafLength,
-      leafWidth,
-    ],
-  },
-  '토마토': {
-    '이미지제목': ["1개체 22화방", "재배전경", "1개체", "특이사항", "pH", "온습도"],
-    '마디정보': {
-      "꽃대": null,
-      "개화수": null,
-      "착과": null,
-      "수확": null,
-      "과중": null,
-      "과폭": null,
-      "과고": null,
-      "당도": null,
-      "산도": null,
-    },
-    '기본조사': [
-      growth,
-      flowerHeight,
-      stemThikness,
-      leafCount,
-      leafLength,
-      leafWidth,
-    ],
-  },
   "배추": {
     '이미지제목': ["재배전경", "온습도", "1번개체", "기상환경센서", "조사사진", "기타특이사항"],
   },
@@ -100,7 +44,7 @@ Schema schema = Schema.object(
     '조사일': Schema.string(nullable: false),
     'data': Schema.object(
       nullable: false,
-      properties: {'토마토': tomato.schema, '파프리카': pepper.schema},
+      properties: {'파프리카': pepper.schema},
       requiredProperties: ['토마토', '파프리카'],
     ),
   },

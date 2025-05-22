@@ -1,60 +1,50 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:farm_data/appbar.dart';
-import 'package:farm_data/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img;
-import 'package:http/http.dart' as http;
 import '../gdrive/gdrive.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../../database/database.dart';
-import 'dart:convert';
-import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:provider/provider.dart';
 import '../provider.dart' as provider;
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import '../crop/schema.dart' as schema;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import '../farm/schema.dart';
+import '../utils/logger.dart';
 
 class CropPhotoScreen extends StatefulWidget {
-  final Map<String, dynamic> selectedFarm;
+  final Farm selectedFarm;
 
   const CropPhotoScreen({super.key, required this.selectedFarm});
   @override
-  _CropPhotoState createState() => _CropPhotoState();
+  State<CropPhotoScreen> createState() => _CropPhotoState();
 }
 
 class _CropPhotoState extends State<CropPhotoScreen> {
   bool _isLoading = true;
   String today = DateFormat('yyyyMMdd').format(DateTime.now());
-  late Map<String, dynamic> selectedFarm;
+  late Farm selectedFarm;
   late List<dynamic> photosURLs;
   late List<File?> _photos;
   late DocumentReference<Map<String, dynamic>> farmRef;
   late List<String> imageTitles;
   late int imageNum;
-  String crop = "";
   String city = "";
   String name = "";
   String id = "";
+  String crop = "";
   @override
   void initState() {
     super.initState();
     selectedFarm = widget.selectedFarm;
-    name = selectedFarm["farmName"];
-    id = selectedFarm["id"];
-    crop = selectedFarm["crop"];
-    city = selectedFarm["city"];
-    imageTitles = (schema.cropSchema[crop] as Map<String, dynamic>)["이미지제목"];
+    name = selectedFarm.name;
+    id = selectedFarm.id;
+    crop = selectedFarm.crop.name;
+    city = selectedFarm.city;
+    imageTitles = selectedFarm.crop.imageTitles;
     imageNum = imageTitles.length;
 
     farmRef = FirebaseFirestore.instance.collection('farms').doc(id);
@@ -147,8 +137,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
       photosURLs[index] = photoUrl;
       await farmRef.update({'photosURLs': photosURLs});
     } catch (e) {
-      print('이미지 업로드 실패: $e');
-      return null;
+      logger.e(e);
     }
   }
 
@@ -170,7 +159,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     // 갤러리 기본 경로 가져오기
     Directory? externalStorageDirectory = await getExternalStorageDirectory();
     if (externalStorageDirectory == null) {
-      print("외부 저장소 경로를 찾을 수 없습니다.");
+      logger.e("외부 저장소 경로를 찾을 수 없습니다.");
       return;
     }
 
@@ -182,7 +171,6 @@ class _CropPhotoState extends State<CropPhotoScreen> {
       );
       if (!saveFolder.existsSync()) {
         saveFolder.createSync();
-        print('"3조" 폴더가 생성되었습니다.');
       }
       final imagePath = File(
         '${saveFolder.path}/${today}_${imageTitles[index]}',
@@ -210,7 +198,6 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         Exception('Google Drive API에 로그인하지 못했습니다.');
         return;
       }
-      final driveApi = gdrive.driveApi;
       showDialog(
         context: context,
         barrierDismissible: false, // 다이얼로그 외부 클릭 방지
@@ -237,18 +224,12 @@ class _CropPhotoState extends State<CropPhotoScreen> {
             context,
             listen: false,
           ).selectedGroup;
-      final rootFolderId = await gdrive.createFolder(
-        driveApi!,
-        "$group조",
-        null,
-      );
+      final rootFolderId = await gdrive.createFolder("$group조", null);
       final imageFolderId = await gdrive.createFolder(
-        driveApi,
         "$group조_생육사진",
         rootFolderId,
       );
       final farmImageFolderId = await gdrive.createFolder(
-        driveApi,
         "${today}_${city}_${crop}_${name}",
         imageFolderId,
       );
@@ -257,7 +238,6 @@ class _CropPhotoState extends State<CropPhotoScreen> {
       for (var i = 0; i < _photos.length; i++) {
         if (_photos[i] != null) {
           gdrive.uploadPhotoToDrive(
-            driveApi: driveApi,
             folderId: farmImageFolderId,
             fileName: '${today}_${city}_${crop}_${name}_${imageTitles[i]}',
             imageFile: _photos[i]!,
@@ -265,9 +245,9 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         }
       }
 
-      print('성공적으로 업로드되었습니다!');
+      logger.i('성공적으로 업로드되었습니다!');
     } catch (e) {
-      print('오류 발생: $e');
+      logger.e(e);
     }
     Navigator.of(context).pop();
     ScaffoldMessenger.of(
