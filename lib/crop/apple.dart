@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'crop.dart';
 
 class Apple extends Crop {
-  Apple({required super.name, required super.farmRef});
+  Apple({required super.name, required super.farmId});
 
   factory Apple.fromMap(Map<String, dynamic> map) {
-    return Apple(name: map["name"], farmRef: map["farmRef"]);
+    return Apple(name: map["name"], farmId: map["farmId"]);
   }
   Future<void> init() async {}
 

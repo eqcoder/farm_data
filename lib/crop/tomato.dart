@@ -4,16 +4,12 @@ import 'crop.dart';
 
 class Tomato extends Crop {
   final int stemCount;
-  Tomato({
-    required super.name,
-    required super.farmRef,
-    required this.stemCount,
-  });
+  Tomato({required super.name, required super.farmId, required this.stemCount});
 
   factory Tomato.fromMap(Map<String, dynamic> map) {
     return Tomato(
       name: map["name"],
-      farmRef: map["farmRef"],
+      farmId: map["farmId"],
       stemCount: map["stemCount"],
     );
   }

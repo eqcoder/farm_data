@@ -29,6 +29,7 @@ abstract class Crop {
   String farmId;
   Crop({required this.name, required this.farmId});
 
+  DocumentReference<Map<String, dynamic>>? farmRef;
   DocumentReference<Map<String, dynamic>>? currentEntity;
   List<Map<String, dynamic>> allEntities = [];
   List<String> entityNames = [];
@@ -37,15 +38,20 @@ abstract class Crop {
   List<CropField> get fields => [];
   List<String> get imageTitles => [];
   Map<String, dynamic> basicSurvey = {};
-  Future<void> init()async{
-    
-  };
+  Future<void> init() async {
+    farmRef = FirebaseFirestore.instance.collection('farms').doc(farmId);
+    final entityRef = farmRef!.collection(name);
+    final snapshot = await entityRef.get();
+    allEntities = snapshot.docs.map((doc) => doc.data()).toList();
+    entityNames = snapshot.docs.map((doc) => doc.id).toList();
+  }
+
   void addEntity(int entityNumber) {
-    final entityRef = farmRef.collection(name).doc(entityNumber.toString());
+    final entityRef = farmRef!.collection(name).doc(entityNumber.toString());
   }
 
   void deleteEntity(int entityNumber) {
-    final entityRef = farmRef.collection(name).doc(entityNumber.toString());
+    final entityRef = farmRef!.collection(name).doc(entityNumber.toString());
     entityRef.delete();
   }
 

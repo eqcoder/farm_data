@@ -79,7 +79,44 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
     }
   }
 
-  Future<void> _openNaverMaps(
+  void _showMapSelectionSheet(
+    BuildContext context,
+    List<AvailableMap> availableMaps,
+    double destLat,
+    double destLng,
+    double originLat,
+    double originLng,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...availableMaps.map(
+                  (map) => ListTile(
+                    leading: Icon(Icons.map, color: Colors.blue),
+                    title: Text(map.mapName),
+                    onTap: () async {
+                      Navigator.pop(context); // 바텀시트 닫기
+                      await map.showDirections(
+                        destination: Coords(destLat, destLng),
+                        destinationTitle: '목적지',
+                        origin: Coords(originLat, originLng),
+                        originTitle: '현재 위치',
+                        directionsMode: DirectionsMode.driving,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Future<void> _openMaps(
     BuildContext context,
     String address,
     String placeName,
@@ -97,17 +134,23 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
 
     // 3. 설치된 지도앱 리스트 가져오기
     final availableMaps = await MapLauncher.installedMaps;
-
-    // 4. 첫 번째 지도앱으로 길안내 실행 (예: 구글지도)
-    await MapLauncher.showDirections(
-      mapType: MapType.naver,
-      destination: Coords(destLat, destLng),
-      destinationTitle: '목적지',
-      origin: Coords(position.latitude, position.longitude),
-      originTitle: '현재 위치',
-      directionsMode: DirectionsMode.driving,
+    if (!context.mounted) return;
+    if (availableMaps.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('설치된 지도 앱이 없습니다.')));
+      return;
+    }
+    _showMapSelectionSheet(
+      context,
+      availableMaps,
+      destLat,
+      destLng,
+      position.latitude,
+      position.longitude,
     );
   }
+  // 4. 첫 번째 지도앱으로 길안내 실행 (예: 구글지도)
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +279,7 @@ class _BusinessTripScreenState extends State<BusinessTripScreen> {
                                 _loadingMap
                                     ? null
                                     : () async {
-                                      _openNaverMaps(context, farm.address, "");
+                                      _openMaps(context, farm.address, "");
                                     },
                             child: Column(
                               mainAxisSize: MainAxisSize.max,

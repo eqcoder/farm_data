@@ -124,7 +124,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
       );
 
       // 2. 파일 업로드 (contentType 지정 권장)
-      final uploadTask = await storageRef.putFile(
+      await storageRef.putFile(
         imageFile,
         SettableMetadata(contentType: 'image/jpeg'),
       );
@@ -142,15 +142,15 @@ class _CropPhotoState extends State<CropPhotoScreen> {
   }
 
   Future<void> _takePhoto(int index) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? pickedFile = await _picker.pickImage(
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
       source: ImageSource.camera,
     );
 
     // 이미지 압축
 
     if (pickedFile != null) {
-      File? originalImage = File(pickedFile!.path);
+      File? originalImage = File(pickedFile.path);
       File? compressedImage = await _compressImage(originalImage);
       setState(() {
         _photos[index] = File(compressedImage!.path);
@@ -176,7 +176,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         '${saveFolder.path}/${today}_${imageTitles[index]}',
       );
       imagePath.writeAsBytesSync(_photos[index]!.readAsBytesSync());
-      final result = await SaverGallery.saveImage(
+      await SaverGallery.saveImage(
         _photos[index]!.readAsBytesSync(),
         quality: 97, // 이미지 품질 (JPEG만 해당)
         fileName:
@@ -198,6 +198,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         Exception('Google Drive API에 로그인하지 못했습니다.');
         return;
       }
+      if (!context.mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false, // 다이얼로그 외부 클릭 방지
@@ -230,7 +231,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         rootFolderId,
       );
       final farmImageFolderId = await gdrive.createFolder(
-        "${today}_${city}_${crop}_${name}",
+        "${today}_${city}_${crop}_$name",
         imageFolderId,
       );
 
@@ -249,6 +250,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
     } catch (e) {
       logger.e(e);
     }
+    if (!context.mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(
       context,
@@ -264,7 +266,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
         final ref = storage.refFromURL(url);
         deleteFutures.add(ref.delete());
       } catch (e) {
-        print('$url 삭제 실패: $e');
+        logger.e("Error deleting file: $e");
       }
     }
     await Future.wait(deleteFutures);
@@ -299,7 +301,7 @@ class _CropPhotoState extends State<CropPhotoScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
+                          color: Colors.grey,
                           spreadRadius: 2,
                           blurRadius: 5,
                           offset: const Offset(0, 3),

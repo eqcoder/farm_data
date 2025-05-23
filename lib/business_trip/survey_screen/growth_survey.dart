@@ -38,7 +38,6 @@ class GrowthSurveyScreen extends StatelessWidget {
       case '배추':
       case '콩':
       case '사과':
-        Future.microtask(() => showDevelopingDialog(context)); // 다이얼로그 비동기 호출
         return Center(child: Text('개발중입니다.'));
       default:
         return Center(child: Text('지원하지 않는 작물입니다.'));

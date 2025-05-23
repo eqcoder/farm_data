@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'crop.dart';
+import '../utils/logger.dart';
 
 class Paprika extends Crop {
   final int stemCount;
@@ -58,28 +59,28 @@ class Paprika extends Crop {
 
   Future<void> init() async {
     // 기본 개체(1번) 생성
-    final individualRef = farmRef.collection('entity').doc('1');
-    individualRef.set({'entity_number': 1});
+    final individualRef = farmRef!.collection('entity').doc('1');
+    individualRef.set({'entityNumber': 1});
     // stem_count만큼 줄기 생성
     for (int stemNum = 1; stemNum <= stemCount; stemNum++) {
       final stemRef = individualRef
           .collection('stem_number')
           .doc(stemNum.toString());
       ;
-      stemRef.set({'stem_number': stemNum});
+      stemRef.set({'stemNumber': stemNum});
       // 각 줄기에 기본 마디(1번) 생성
       final nodeRef = stemRef.collection('node').doc('1');
-      final Map<String, dynamic> nodeData = {...nodeInfo, 'node_number': 1};
+      final Map<String, dynamic> nodeData = {...nodeInfo, 'nodeNumber': 1};
       await nodeRef.set(nodeData);
     }
   }
 
   Future<void> loadAllStems() async {
     QuerySnapshot<Map<String, dynamic>> entities =
-        await farmRef.collection('entity').orderBy('entity_number').get();
+        await farmRef!.collection('entity').orderBy('entityNumber').get();
     for (final entity in entities.docs) {
       final stemsSnapshot =
-          await farmRef
+          await farmRef!
               .collection('entity')
               .doc(entity["entityNumber"].toString())
               .collection('stem')
@@ -113,15 +114,16 @@ class Paprika extends Crop {
   }
 
   void addStem(int entityNum, int stemNum) async {
-    final individualRef = farmRef
+    final individualRef = farmRef!
         .collection('entity')
         .doc(entityNum.toString());
     individualRef.set(Map<String, dynamic>.from({"entityNumber": entityNum}));
     // stem_count만큼 줄기 생성
     final stemRef = individualRef.collection('stem').doc(stemNum.toString());
     stemRef.set(Map<String, dynamic>.from({"stemNumber": stemNum}));
+    loadAllStems();
     // 각 줄기에 기본 마디(1번) 생성
-    addNode(stemRef, 1);
+    addNode(entityNum, stemNum, 1);
   }
 
   Future<void> deleteStem(
@@ -140,7 +142,7 @@ class Paprika extends Crop {
       // 줄기 문서 삭제
       await stemRef.delete();
     } catch (e) {
-      print('줄기 삭제 실패: $e');
+      logger.e('Error deleting stem: $e');
       rethrow;
     }
   }
@@ -160,26 +162,48 @@ class Paprika extends Crop {
     try {
       await nodeRef.update({'status': newStatus});
     } catch (e) {
-      print('상태 업데이트 실패: $e');
+      logger.e('Error updating node status: $e');
     }
   }
 
-  Future<void> addNode(
-    DocumentReference<Map<String, dynamic>> stemRef,
-    int nodeNum,
-  ) async {
+  Future<void> addNode(int entityNum, stenNum, int nodeNum) async {
+    final stemRef = farmRef!
+        .collection('entity')
+        .doc(entityNum.toString())
+        .collection('stem')
+        .doc(stenNum.toString());
     // 자동 생성 ID로 문서 참조 생성
     final nodeRef = stemRef.collection('node').doc(nodeNum.toString());
     nodeInfo["nodeNumber"] = nodeNum;
     await nodeRef.set(nodeInfo);
   }
 
-  Future<void> deleteNode(
-    DocumentReference<Map<String, dynamic>> stemRef,
-    int nodeNum,
-  ) async {
+  Future<void> deleteNode(int entityNum, stenNum, int nodeNum) async {
+    final stemRef = farmRef!
+        .collection('entity')
+        .doc(entityNum.toString())
+        .collection('stem')
+        .doc(stenNum.toString());
     final nodeRef = stemRef.collection('node').doc(nodeNum.toString());
     nodeRef.delete();
+  }
+
+  Future<List<Map<String, dynamic>>> nodeSuveryTable(
+    int entityNum,
+    int stemNum,
+  ) async {
+    final stemRef = farmRef!
+        .collection('entity')
+        .doc(entityNum.toString())
+        .collection('stem')
+        .doc(stemNum.toString());
+    List<Map<String, dynamic>> result = [];
+    final nodes = await stemRef.collection('node').get();
+    for (final node in nodes.docs) {
+      final nodeData = node.data();
+      result.add({'마디번호': node.id, ...nodeData});
+    }
+    return result;
   }
 
   // #endregion
@@ -223,21 +247,21 @@ class Paprika extends Crop {
       for (final String status in statuses) {
         final emptyNodes =
             await stemDoc.reference
-                .collection('nodes')
+                .collection('node')
                 .where('status', isEqualTo: status)
                 .where(status, isEqualTo: null)
                 .get();
         for (final nodeDoc in emptyNodes.docs) {
           batch.update(nodeDoc.reference, {status: today});
         }
-        stemInfo["$status수"] =
-            (stemInfo["$status수"] ?? 0) + emptyNodes.docs.length;
+        stemInfo["${status}Number"] =
+            (stemInfo["${status}Number"] ?? 0) + emptyNodes.docs.length;
 
         final nodesQuery =
             await stemDoc.reference
-                .collection('nodes')
+                .collection('node')
                 .where('status', isEqualTo: status)
-                .orderBy('마디번호', descending: true)
+                .orderBy('nodeNumber', descending: true)
                 .limit(1)
                 .get();
         int order = 0;
@@ -245,7 +269,7 @@ class Paprika extends Crop {
           final node = nodesQuery.docs.first;
           order = node.data()['nodeNumber'] ?? 0;
         }
-        stemInfo["$status마디"] = order;
+        stemInfo["${status}Node"] = order;
         // 5. 최대값 마디 찾기
       }
       batch.update(stemDoc.reference, stemInfo);

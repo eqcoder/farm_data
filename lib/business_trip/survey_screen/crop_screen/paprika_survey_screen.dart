@@ -1,17 +1,9 @@
-import 'package:farm_data/business_trip/survey_screen/growth_survey.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import '../../../appbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:convert';
-import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:googleapis/sheets/v4.dart' as sheet;
-import 'package:googleapis_auth/auth_io.dart';
-import 'package:http/http.dart' as http;
 import '../../../provider.dart' as provider;
 import '../../../crop/paprika.dart';
 import '../../../crop/crop.dart';
@@ -22,7 +14,7 @@ class PaprikaSurveyScreen extends StatefulWidget {
   final Farm farm;
   const PaprikaSurveyScreen({super.key, required this.farm});
   @override
-  _PaprikaSurveyScreenState createState() => _PaprikaSurveyScreenState();
+  State<PaprikaSurveyScreen> createState() => _PaprikaSurveyScreenState();
 }
 
 class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
@@ -30,11 +22,10 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
   late Farm farm;
   late Crop paprika;
   String farmName = "";
-  int _currentPage = 0;
+  int currentPage = 0;
+  int currentEntity = 0;
+  int currentStem = 0;
   final today = DateFormat('MM/dd').format(DateTime.now());
-  Map<String, dynamic> _currentStem = <String, dynamic>{};
-  late DocumentReference<Map<String, dynamic>> farmRef;
-  late DocumentReference<Map<String, dynamic>> stemRef;
   late int stemCount;
 
   late QuerySnapshot<Map<String, dynamic>> entities;
@@ -52,7 +43,6 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
     paprika = farm.crop;
     farmName = farm.name;
     stemCount = (paprika as Paprika).stemCount;
-    farmRef = FirebaseFirestore.instance.collection('farms').doc(farm.id);
     refresh();
   }
 
@@ -77,7 +67,11 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             icon: const Icon(Icons.add),
             label: const Text('마디 추가'),
             onPressed: () async {
-              (paprika as Paprika).addNode(stemRef, nodeNum + 1);
+              (paprika as Paprika).addNode(
+                currentEntity,
+                currentStem,
+                nodeNum + 1,
+              );
             },
           ),
         ),
@@ -88,7 +82,11 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('마디 삭제'),
                 onPressed: () async {
-                  (paprika as Paprika).deleteNode(stemRef, nodeNum);
+                  (paprika as Paprika).deleteNode(
+                    currentEntity,
+                    currentStem,
+                    nodeNum,
+                  );
                 },
               ),
             )
@@ -160,7 +158,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _currentPage + 1 > stemCount
+        currentPage + 1 > stemCount
             ? Expanded(
               flex: 2,
               child: IconButton(
@@ -171,7 +169,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 ),
                 onPressed: () {
                   _pageController.animateToPage(
-                    _currentPage - stemCount,
+                    currentPage - stemCount,
                     duration: Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                   );
@@ -197,7 +195,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
           flex: 3,
           child: DropdownButton<int>(
             isExpanded: true,
-            value: _currentPage,
+            value: currentPage,
             style: TextStyle(
               fontSize: 16,
               color: Colors.black,
@@ -213,11 +211,11 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             onChanged: (int? newIndex) {
               if (newIndex != null) {
                 setState(() {
-                  _currentPage = newIndex;
+                  currentPage = newIndex;
                 });
                 // 페이지 이동
                 _pageController.animateToPage(
-                  _currentPage,
+                  currentPage,
                   duration: Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
@@ -225,7 +223,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             },
           ),
         ),
-        _currentPage + stemCount < stemNames.length
+        currentPage + stemCount < stemNames.length
             ? Expanded(
               flex: 2,
               child: IconButton(
@@ -236,7 +234,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 ),
                 onPressed: () {
                   _pageController.animateToPage(
-                    _currentPage + stemCount,
+                    currentPage + stemCount,
                     duration: Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                   );
@@ -244,7 +242,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               ),
             )
             : Spacer(flex: 2),
-        _currentPage + stemCount < stemNames.length
+        currentPage + stemCount < stemNames.length
             ? Expanded(
               flex: 4,
               child: ElevatedButton.icon(
@@ -267,7 +265,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 onPressed: () async {
                   showDeleteConfirmDialog(
                     context: context,
-                    description: '${stemNames[_currentPage]}개체',
+                    description: '${stemNames[currentPage]}개체',
                     hintText: farmName,
                   );
                 },
@@ -275,7 +273,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
             )
             : Spacer(flex: 2),
         SizedBox(width: 8),
-        _currentPage >= stemNames.length - stemCount
+        currentPage >= stemNames.length - stemCount
             ? Expanded(
               flex: 4,
               child: ElevatedButton.icon(
@@ -429,7 +427,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
 
                     return _editNodeButton(
                       context,
-                      nodes.isNotEmpty ? nodes.last['마디번호'] : 1,
+                      nodes.isNotEmpty ? nodes.last['nodeNumber'] : 1,
                     );
                   }
                   final nodeDoc = nodes[index];
@@ -441,6 +439,60 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget buildNodeDataTable(List<Map<String, dynamic>> nodeList) {
+    if (nodeList.isEmpty) {
+      return Text('데이터가 없습니다.');
+    }
+
+    // 모든 열 이름 추출 (마디번호는 제외)
+    final allKeys = nodeList.first.keys.where((k) => k != '마디번호').toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: [
+          DataColumn(label: Text('마디번호')), // 첫 번째 열: 마디번호
+          ...allKeys.map((key) => DataColumn(label: Text(key))),
+        ],
+        rows:
+            nodeList.map((node) {
+              return DataRow(
+                cells: [
+                  DataCell(Text(node['마디번호'].toString())),
+                  ...allKeys.map(
+                    (key) => DataCell(Text(node[key]?.toString() ?? '')),
+                  ),
+                ],
+              );
+            }).toList(),
+      ),
+    );
+  }
+
+  void showNodeDataTableDialog(
+    BuildContext context,
+    List<Map<String, dynamic>> nodeList,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('마디 데이터'),
+          content: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: buildNodeDataTable(nodeList),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('닫기'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -479,9 +531,7 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               if (result != null) {
                 paprika.basicSurvey = result;
                 // Firestore 저장, 상태 업데이트 등 추가 작업
-              } else {
-                print('사용자가 취소했습니다.');
-              }
+              } else {}
             },
           ),
         ),
@@ -562,27 +612,17 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
                 borderRadius: BorderRadius.circular(10), // ← 원하는 둥글기 값
               ),
             ),
-            onPressed: () async {},
+            onPressed: () async {
+              List<Map<String, dynamic>> nodeList = await (paprika as Paprika)
+                  .nodeSuveryTable(currentEntity, currentStem);
+
+              showNodeDataTableDialog(context, nodeList);
+            },
           ),
         ),
         SizedBox(width: 8),
       ],
     );
-  }
-
-  Map<String, dynamic> getStemCounts(DocumentSnapshot stemDoc) {
-    Map<String, dynamic> map = Map<String, dynamic>.from({
-      "flowerNode": null,
-      "착과마디": null,
-      "열매마디": null,
-      "수확마디": null,
-    });
-    statuses.map(
-      (status) =>
-          map['$status수'] = // 또는 '${status}수'로 키를 바꿀 수도 있음
-              (stemDoc.data() as Map<String, dynamic>)['$status수'] ?? 0,
-    );
-    return map;
   }
 
   @override
@@ -630,7 +670,10 @@ class _PaprikaSurveyScreenState extends State<PaprikaSurveyScreen> {
               onPageChanged: (int pageIndex) {
                 setState(() {
                   if (pageIndex < paprika.allEntities.length) {
-                    _currentPage = pageIndex; // 마지막 페이지
+                    currentPage = pageIndex;
+                    currentEntity =
+                        paprika.allEntities[pageIndex]["entityNumber"];
+                    currentStem = paprika.allEntities[pageIndex]["stemNumber"];
                   } // 페이지가 바뀌면 드롭다운 선택값 변경
                 });
               },

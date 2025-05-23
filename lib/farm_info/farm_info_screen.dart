@@ -15,9 +15,9 @@ class FarmInfoScreen extends StatefulWidget {
 class _FarmInfoScreenState extends State<FarmInfoScreen> {
   Farm? selectedFarm;
   final _formKey = GlobalKey<FormState>();
-  TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   String? _crop;
-  int? _selectedStemCount;
+  int? _selectedStemCount = 1;
   final List<int> _stemCounts = [1, 2, 3];
   final TextEditingController _farmNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -65,7 +65,11 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
     for (final doc in farmsSnapshot.docs) {
       final data = doc.data();
       data['id'] = doc.id;
-      Crop crop=CropFactory.fromMap({'name':data["crop"], 'stemCount':data["stemCount"], ''})
+      Crop crop = CropFactory.fromMap({
+        'name': data["crop"],
+        'stemCount': data["stemCount"],
+        'farmId': doc.id,
+      });
       all.add(Farm.fromMap(data));
 
       final ownerRef = data['owner'] as DocumentReference;
@@ -139,23 +143,24 @@ class _FarmInfoScreenState extends State<FarmInfoScreen> {
                   onChanged: (value) => setState(() => _crop = value),
                   validator: (value) => value == null ? "작물명을 선택하세요" : null,
                 ),
-                DropdownButtonFormField<int>(
-                  value: _selectedStemCount,
-                  decoration: InputDecoration(labelText: '줄기개수'),
-                  items:
-                      _stemCounts.map((count) {
-                        return DropdownMenuItem<int>(
-                          value: count,
-                          child: Text('$count'),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedStemCount = value;
-                    });
-                  },
-                  validator: (value) => value == null ? '줄기개수를 선택하세요' : null,
-                ),
+                if (_crop == '파프리카' || _crop == '토마토')
+                  DropdownButtonFormField<int>(
+                    value: _selectedStemCount,
+                    decoration: InputDecoration(labelText: '줄기개수'),
+                    items:
+                        _stemCounts.map((item) {
+                          return DropdownMenuItem<int>(
+                            value: item,
+                            child: Text('$item'),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStemCount = value;
+                      });
+                    },
+                    validator: (value) => value == null ? '줄기개수를 선택하세요' : null,
+                  ),
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(labelText: '주소'),
@@ -470,6 +475,7 @@ class PermissionManagementDialog extends StatefulWidget {
   final String farmname;
 
   const PermissionManagementDialog({
+    super.key,
     required this.farmRef,
     required this.authorizedUids,
     required this.onUpdate,
@@ -477,7 +483,7 @@ class PermissionManagementDialog extends StatefulWidget {
   });
 
   @override
-  _PermissionManagementDialogState createState() =>
+  State<PermissionManagementDialog> createState() =>
       _PermissionManagementDialogState();
 }
 
@@ -643,6 +649,8 @@ class _PermissionManagementDialogState
 
     await batch.commit();
     widget.onUpdate();
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 }

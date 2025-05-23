@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'crop.dart';
 
 class Cabbage extends Crop {
-  Cabbage({required super.name, required super.farmRef});
+  Cabbage({required super.name, required super.farmId});
 
   factory Cabbage.fromMap(Map<String, dynamic> map) {
-    return Cabbage(name: map["name"], farmRef: map["farmRef"]);
+    return Cabbage(name: map["name"], farmId: map["farmId"]);
   }
   Future<void> init() async {}
 
